@@ -1,0 +1,67 @@
+[2025-02-11 18:31:02,579] [INFO] CacheService constructor called
+[2025-02-11 18:31:02,602] [INFO] Cache Service is starting...
+[2025-02-11 18:31:02,610] [INFO] Server started on port 9090
+[2025-02-11 18:31:37,074] [INFO] Client connected: 127.0.0.1:53954
+[2025-02-11 18:31:39,233] [INFO] Received: 
+[2025-02-11 18:31:39,492] [INFO] Received: 
+[2025-02-11 18:31:39,778] [INFO] Received: 
+[2025-02-11 18:31:40,001] [INFO] Received: 
+[2025-02-11 18:36:46,937] [INFO] Received: 
+
+[2025-02-11 18:36:47,122] [INFO] Received: 
+
+[2025-02-11 18:36:47,307] [INFO] Received: 
+
+[2025-02-11 18:36:47,972] [INFO] Received: 
+[2025-02-11 18:36:48,090] [INFO] Received: [A
+[2025-02-11 18:36:48,245] [INFO] Received: 
+[2025-02-11 18:36:48,316] [INFO] Received: [A
+[2025-02-11 18:36:48,562] [INFO] Received: [A
+[2025-02-11 18:36:48,603] [INFO] Received: 
+[2025-02-11 18:36:48,930] [INFO] Received: 
+
+[2025-02-11 18:36:50,415] [INFO] Client disconnected.
+[2025-02-11 18:37:03,878] [INFO] Client connected: 127.0.0.1:54068
+[2025-02-11 18:51:45,759] [INFO] CacheService constructor called
+[2025-02-11 18:51:45,790] [INFO] Cache Service is starting...
+[2025-02-11 18:51:45,802] [INFO] Server started on port 5000
+[2025-02-11 18:52:04,763] [INFO] Client connected: 127.0.0.1:54410
+[2025-02-11 18:52:07,987] [INFO] Received: 
+[2025-02-11 18:52:08,728] [INFO] Received: 
+[2025-02-11 18:52:09,007] [INFO] Received: 
+[2025-02-11 18:52:09,212] [INFO] Received: 
+[2025-02-11 18:52:09,396] [INFO] Received: 
+[2025-02-11 18:52:09,586] [INFO] Received: 
+[2025-02-11 18:52:09,775] [INFO] Received: 
+[2025-02-11 18:52:10,827] [INFO] Received: 
+[2025-02-11 18:52:11,106] [INFO] Received: 
+[2025-02-11 18:52:11,114] [INFO] Received: 
+[2025-02-11 18:52:11,351] [INFO] Received: 
+[2025-02-11 18:52:11,355] [INFO] Received: 
+[2025-02-11 18:52:37,938] [INFO] Received: 
+
+[2025-02-11 18:52:37,945] [INFO] Client connected: 127.0.0.1:54416
+[2025-02-11 18:52:38,020] [INFO] Received: 
+
+fsadfasdf
+sadf
+asdf
+asdf
+asdf
+asdf
+asdf
+
+[2025-02-11 18:52:38,032] [ERROR] Error: Unable to read data from the transport connection: An established connection was aborted by the software in your host machine..
+[2025-02-11 18:53:43,113] [INFO] CacheService constructor called
+[2025-02-11 18:53:43,123] [INFO] Cache Service is starting...
+[2025-02-11 18:53:43,127] [INFO] Server started on port 5000
+[2025-02-11 18:54:28,047] [INFO] Client connected: 127.0.0.1:54445
+[2025-02-11 18:54:29,836] [INFO] Received: d
+[2025-02-11 18:54:29,843] [INFO] Received: s
+[2025-02-11 18:54:29,954] [INFO] Received: f
+[2025-02-11 18:54:30,115] [INFO] Received: e
+[2025-02-11 18:54:30,140] [INFO] Received: s
+[2025-02-11 18:54:30,214] [INFO] Received: f
+[2025-02-11 18:54:30,323] [INFO] Received: 
+
+[2025-02-11 18:54:32,282] [INFO] Client disconnected.
