@@ -1,5 +1,0 @@
-E:\cache-service\bin\Release\net9.0\win-x64\publish\log4net.config
-E:\cache-service\bin\Release\net9.0\win-x64\publish\appsettings.Development.json
-E:\cache-service\bin\Release\net9.0\win-x64\publish\appsettings.json
-E:\cache-service\bin\Release\net9.0\win-x64\publish\cache-service.pdb
-E:\cache-service\bin\Release\net9.0\win-x64\publish\cache-service.exe
