@@ -21,12 +21,19 @@ builder.Services.AddWindowsService(options =>
     options.ServiceName = ".net Cache";
 });
 
-LoggerProviderOptions.RegisterProviderOptions<
-    EventLogSettings, EventLogLoggerProvider>(builder.Services);
+// Registering CacheManager for DI via container
+builder.Services.AddSingleton<CacheManager>();
 
-// builder.Services.AddSingleton<JokeService>();
+// Registering RequestHandler for DI via container
+builder.Services.AddTransient<RequestHandler>();
+
+//Registering CacheService for DI via container
 builder.Services.AddSingleton<CacheService>();
+
+//Registering the background service 
 builder.Services.AddHostedService<WindowsBackgroundService>();
+
+LoggerProviderOptions.RegisterProviderOptions<EventLogSettings, EventLogLoggerProvider>(builder.Services);
 
 IHost host = builder.Build();
 host.Run();

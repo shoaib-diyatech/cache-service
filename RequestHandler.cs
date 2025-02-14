@@ -1,14 +1,16 @@
 namespace App.WindowsService;
-public class RequestHandler
+using Microsoft.Extensions.Options;
+public sealed class RequestHandler
 {
     private readonly CacheManager _cacheManager;
 
     private readonly CacheSettings _cacheSettings;
 
-    public RequestHandler(CacheSettings cacheSettings)
+    public RequestHandler(IOptions<CacheSettings> cacheSettings, CacheManager cacheManager)
     {
-        _cacheSettings = cacheSettings;
-        _cacheManager = new CacheManager(_cacheSettings.CacheSizeInMBs);
+        // Injecting depencdenices via DI
+        _cacheSettings = cacheSettings.Value;
+        _cacheManager = cacheManager;
     }
     public string ProcessRequest(string request)
     {

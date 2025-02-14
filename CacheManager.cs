@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
+using Microsoft.Extensions.Options;
 
 namespace App.WindowsService
 {
@@ -13,9 +14,9 @@ namespace App.WindowsService
         private long _currentMemoryUsageInBytes = 0; // Atomic tracking
         private readonly long _maxMemoryUsageInBytes; // Max memory in bytes
 
-        public CacheManager(long maxMemoryMB)
+        public CacheManager(IOptions<CacheSettings> cacheSettings)
         {
-            _maxMemoryUsageInBytes = maxMemoryMB * 1024 * 1024; // Convert MB to Bytes
+            _maxMemoryUsageInBytes = cacheSettings.Value.CacheSizeInMBs * 1024 * 1024;// Convert MB to Bytes
         }
 
         public int getCurrentMemoryUsageInMB()

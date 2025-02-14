@@ -12,6 +12,7 @@ using log4net;
 using log4net.Config;
 using Microsoft.Extensions.Options;
 
+
 public sealed class CacheService
 {
 
@@ -27,15 +28,6 @@ public sealed class CacheService
 
     private readonly RequestHandler _requestHandler;
 
-    /**
-    * Create a TcpServer instance , defaults to 10 number of connections if null is provided
-    */
-    // public CacheService(int port, int? maxConnections)
-    // {
-    //     Port = port;
-    //     MaxConnections = maxConnections ?? 10;
-    //     _connectionLimiter = new(MaxConnections.Value);
-    // }
 
     public CacheService(ILogger<CacheService> logger, IOptions<CacheSettings> settings, RequestHandler requestHandler)
     {

@@ -47,6 +47,12 @@ E:\cache-service\obj\Debug\net9.0\win-x64\refint\cache-service.dll
 E:\cache-service\obj\Debug\net9.0\win-x64\cache-service.pdb
 E:\cache-service\obj\Debug\net9.0\win-x64\cache-service.genruntimeconfig.cache
 E:\cache-service\obj\Debug\net9.0\win-x64\ref\cache-service.dll
+D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.csproj.AssemblyReference.cache
+D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.GeneratedMSBuildEditorConfig.editorconfig
+D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.AssemblyInfoInputs.cache
+D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.AssemblyInfo.cs
+D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.csproj.CoreCompileInputs.cache
+D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.sourcelink.json
 D:\Alachisoft work\cache-service\bin\Debug\net9.0\win-x64\log4net.config
 D:\Alachisoft work\cache-service\bin\Debug\net9.0\win-x64\appsettings.Development.json
 D:\Alachisoft work\cache-service\bin\Debug\net9.0\win-x64\appsettings.json
@@ -90,12 +96,6 @@ D:\Alachisoft work\cache-service\bin\Debug\net9.0\win-x64\System.Diagnostics.Eve
 D:\Alachisoft work\cache-service\bin\Debug\net9.0\win-x64\System.Security.Cryptography.ProtectedData.dll
 D:\Alachisoft work\cache-service\bin\Debug\net9.0\win-x64\System.Security.Permissions.dll
 D:\Alachisoft work\cache-service\bin\Debug\net9.0\win-x64\System.ServiceProcess.ServiceController.dll
-D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.csproj.AssemblyReference.cache
-D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.GeneratedMSBuildEditorConfig.editorconfig
-D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.AssemblyInfoInputs.cache
-D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.AssemblyInfo.cs
-D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.csproj.CoreCompileInputs.cache
-D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.sourcelink.json
 D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-se.FE315D5B.Up2Date
 D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\cache-service.dll
 D:\Alachisoft work\cache-service\obj\Debug\net9.0\win-x64\refint\cache-service.dll
