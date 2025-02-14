@@ -3,13 +3,20 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Threading;
 using Microsoft.Extensions.Options;
+using log4net;
 
 namespace App.WindowsService
 {
+    /// <summary>
+    /// Cache Manager class to manage the cache operations, Uses ConcurrentDictionary DataStructure for thread safety.
+    /// Maintains the current memory usage and max memory usage to avoid memory overflow.
+    /// </summary>
     public class CacheManager
     {
         //private readonly ConcurrentDictionary<string, byte[]> _cache = new();
         private readonly ConcurrentDictionary<string, string> _cache = new();
+
+        private static readonly ILog log = LogManager.GetLogger(typeof(CacheService));
 
         private long _currentMemoryUsageInBytes = 0; // Atomic tracking
         private readonly long _maxMemoryUsageInBytes; // Max memory in bytes
@@ -17,11 +24,22 @@ namespace App.WindowsService
         public CacheManager(IOptions<CacheSettings> cacheSettings)
         {
             _maxMemoryUsageInBytes = cacheSettings.Value.CacheSizeInMBs * 1024 * 1024;// Convert MB to Bytes
+            if (!log.IsDebugEnabled)
+                log.Info("Debug is not enabled");
+            log.Debug("Debug is enabled");
         }
 
-        public int getCurrentMemoryUsageInMB()
+        public double getCurrentMemoryUsageInMB()
         {
-            return (int)(_currentMemoryUsageInBytes / 1024 / 1024);
+            double usageInMB = (double)(_currentMemoryUsageInBytes / 1024.0 / 1024.0);
+            return Math.Round(usageInMB, 6); // Rounding to 6 decimal places
+        }
+
+        public bool FlushAll()
+        {
+            _cache.Clear();
+            _currentMemoryUsageInBytes = 0;
+            return true;
         }
 
         //public bool Create(string key, byte[] serializedValue)
@@ -32,12 +50,16 @@ namespace App.WindowsService
             // Check memory limit before adding
             if (Interlocked.Read(ref _currentMemoryUsageInBytes) + size > _maxMemoryUsageInBytes)
             {
-                return false; // Reject insertion (Todo: Add Eviction logic here)
+                log.Error($"Memory limit reached, cannot add more items to the cache, currentMemoryUsageInBytes: {_currentMemoryUsageInBytes}");
+                // Todo: Add Eviction logic here
+                return false; 
             }
 
             if (_cache.TryAdd(key, serializedValue))
             {
                 Interlocked.Add(ref _currentMemoryUsageInBytes, size);
+                if (log.IsDebugEnabled)
+                    log.Debug($"Added key: {key}, Value: {serializedValue}, currentMemoryUsageInBytes: {_currentMemoryUsageInBytes}");
                 return true;
             }
 
@@ -56,7 +78,7 @@ namespace App.WindowsService
 
             if (Interlocked.Read(ref _currentMemoryUsageInBytes) - oldSize + newSize > _maxMemoryUsageInBytes)
             {
-                return false; // Reject update (Eviction logic can be added later)
+                return false; // Todo: Add Eviction logic here
             }
 
             if (_cache.TryUpdate(key, newValue, oldValue))

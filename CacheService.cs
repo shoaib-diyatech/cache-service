@@ -33,7 +33,7 @@ public sealed class CacheService
     {
         _logger = logger;
         _settings = settings.Value;
-        _logger.LogInformation("CacheService constructor called");
+        _logger.LogInformation("CacheService initialized");
         log.Info("CacheService constructor called");
         _requestHandler = requestHandler;
         _connectionLimiter = new(MaxConnections.Value);
@@ -44,8 +44,8 @@ public sealed class CacheService
         Port = _settings.Port;
         _listener = new TcpListener(IPAddress.Any, Port);
         _listener.Start();
-        Console.WriteLine($"Server started on port {Port}");
-        _logger.LogInformation($"Server started on port {Port}");
+        Console.WriteLine($"Server started on port: {Port}");
+        _logger.LogInformation($"Server listening on port {Port}");
         log.Info($"Server started on port {Port}");
 
         while (!stoppingToken.IsCancellationRequested)
@@ -73,6 +73,8 @@ public sealed class CacheService
                 string request = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 Console.WriteLine($"Received: {request}");
                 log.Info($"Received: {request}");
+                if (log.IsDebugEnabled)
+                    log.Debug($"Client: {client.Client.RemoteEndPoint} Received: {request}");
 
                 string response = _requestHandler.ProcessRequest(request);
                 byte[] responseBytes = Encoding.UTF8.GetBytes(response);
@@ -88,7 +90,7 @@ public sealed class CacheService
         {
             client.Close();
             Console.WriteLine("Client disconnected.");
-            log.Info("Client disconnected.");
+            log.Info($"Client disconnected: {client.Client.RemoteEndPoint}");
         }
     }
 }

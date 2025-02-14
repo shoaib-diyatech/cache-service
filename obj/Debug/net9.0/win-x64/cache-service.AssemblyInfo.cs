@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("cache-service")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9a808384be3e12fdd69eaad1baa19220f902b5d5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e8425e6fffb12be930dd42582837bb80c46c022c")]
 [assembly: System.Reflection.AssemblyProductAttribute("cache-service")]
 [assembly: System.Reflection.AssemblyTitleAttribute("cache-service")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

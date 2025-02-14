@@ -59,6 +59,12 @@
               "target": "Package",
               "version": "[9.0.1, )"
             },
+            "Microsoft.NET.ILLink.Tasks": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[9.0.1, )",
+              "autoReferenced": true
+            },
             "log4net": {
               "target": "Package",
               "version": "[3.0.3, )"
