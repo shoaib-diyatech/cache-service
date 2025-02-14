@@ -25,7 +25,7 @@ public sealed class CacheService
     private int? MaxConnections = 10;
     private SemaphoreSlim _connectionLimiter;
 
-    private static readonly RequestHandler _requestHandler = new RequestHandler();
+    private readonly RequestHandler _requestHandler;
 
     /**
     * Create a TcpServer instance , defaults to 10 number of connections if null is provided
@@ -37,12 +37,13 @@ public sealed class CacheService
     //     _connectionLimiter = new(MaxConnections.Value);
     // }
 
-    public CacheService(ILogger<CacheService> logger, IOptions<CacheSettings> settings)
+    public CacheService(ILogger<CacheService> logger, IOptions<CacheSettings> settings, RequestHandler requestHandler)
     {
         _logger = logger;
         _settings = settings.Value;
         _logger.LogInformation("CacheService constructor called");
         log.Info("CacheService constructor called");
+        _requestHandler = requestHandler;
         _connectionLimiter = new(MaxConnections.Value);
     }
 
@@ -54,7 +55,6 @@ public sealed class CacheService
         Console.WriteLine($"Server started on port {Port}");
         _logger.LogInformation($"Server started on port {Port}");
         log.Info($"Server started on port {Port}");
-        //Program.log.Info($"Server started on port {Port}");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -64,7 +64,7 @@ public sealed class CacheService
         _listener.Stop(); // Stop listening when service shuts down
     }
 
-    private static async Task HandleClientAsync(TcpClient client)
+    private async Task HandleClientAsync(TcpClient client)
     {
         Console.WriteLine($"Client connected: {client.Client.RemoteEndPoint}");
         log.Info($"Client connected: {client.Client.RemoteEndPoint}");

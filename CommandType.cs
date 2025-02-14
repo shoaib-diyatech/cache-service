@@ -4,5 +4,6 @@ public enum CommandType
     READ,
     UPDATE,
     DELETE,
+    MEM,
     UNKNOWN
 }

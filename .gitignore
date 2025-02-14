@@ -19,6 +19,8 @@ mono_crash.*
 !.vscode/extensions.json
 .vscode/*
 .bin/*
-.obj/Debug/*
-.obj/Release/*
+
+# Build results
+bin/
+obj/
 
