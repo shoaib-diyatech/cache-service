@@ -103,6 +103,7 @@ public sealed class CacheService
                         log.Debug($"Client: {client.Client.RemoteEndPoint} Received: {requestString}");
 
                     Request request = Request.Parse(requestString, _requestHandler.CommandFactory);
+                    // Adding a dynamic tuple (TcpClient, Request) to the request queue
                     _requestQueue.Add((client, request));
                 }
             }
@@ -122,6 +123,7 @@ public sealed class CacheService
 
     private void ProcessRequests(CancellationToken stoppingToken)
     {
+        // BlockingQueue waits for new requests to be added to the request queue
         foreach (var (client, request) in _requestQueue.GetConsumingEnumerable(stoppingToken))
         {
             //Run the ProcessRequest method in a new task
@@ -149,8 +151,8 @@ public sealed class CacheService
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending response: {ex.Message}");
-                log.Error($"Error sending response: {ex.Message}");
+                Console.WriteLine($"Error sending response: {ex.Message}, to client: {client.Client.RemoteEndPoint}");
+                log.Error($"Error sending response: {ex.Message}, to client: {client.Client.RemoteEndPoint}");
             }
         }
     }
