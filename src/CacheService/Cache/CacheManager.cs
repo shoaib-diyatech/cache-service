@@ -13,7 +13,6 @@ namespace App.WindowsService
     /// </summary>
     public class CacheManager
     {
-        //private readonly ConcurrentDictionary<string, byte[]> _cache = new();
         private readonly ConcurrentDictionary<string, string> _cache = new();
 
         private static readonly ILog log = LogManager.GetLogger(typeof(CacheService));
@@ -35,14 +34,25 @@ namespace App.WindowsService
             return Math.Round(usageInMB, 6); // Rounding to 6 decimal places
         }
 
+        /// <summary>
+        /// Flush all the cache items
+        /// </summary>
+        /// <returns></returns>
         public bool FlushAll()
         {
-            _cache.Clear();
-            _currentMemoryUsageInBytes = 0;
-            return true;
+            try
+            {
+                _cache.Clear();
+                _currentMemoryUsageInBytes = 0;
+                return true;
+            }
+            catch (Exception e)
+            {
+                log.Error($"Error while flushing the cache: {e.Message}");
+                throw e;
+            }
         }
 
-        //public bool Create(string key, byte[] serializedValue)
         public bool Create(string key, string serializedValue)
         {
             long size = GetSizeInBytes(key, serializedValue);
@@ -52,7 +62,7 @@ namespace App.WindowsService
             {
                 log.Error($"Memory limit reached, cannot add more items to the cache, currentMemoryUsageInBytes: {_currentMemoryUsageInBytes}");
                 // Todo: Add Eviction logic here
-                return false; 
+                return false;
             }
 
             if (_cache.TryAdd(key, serializedValue))
@@ -62,13 +72,11 @@ namespace App.WindowsService
                     log.Debug($"Added key: {key}, Value: {serializedValue}, currentMemoryUsageInBytes: {_currentMemoryUsageInBytes}");
                 return true;
             }
-
             return false;
         }
 
         public bool Read(string key, out string value) => _cache.TryGetValue(key, out value);
 
-        //public bool Update(string key, byte[] newValue)
         public bool Update(string key, string newValue)
         {
             if (!_cache.TryGetValue(key, out string oldValue)) return false;
@@ -86,7 +94,6 @@ namespace App.WindowsService
                 Interlocked.Add(ref _currentMemoryUsageInBytes, newSize - oldSize);
                 return true;
             }
-
             return false;
         }
 
@@ -98,7 +105,6 @@ namespace App.WindowsService
                 Interlocked.Add(ref _currentMemoryUsageInBytes, -size);
                 return true;
             }
-
             return false;
         }
 

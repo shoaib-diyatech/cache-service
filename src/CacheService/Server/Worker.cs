@@ -3,7 +3,6 @@ using log4net;
 using log4net.Config;
 
 public sealed class WindowsBackgroundService(
-    //JokeService jokeService,
     CacheService cacheService,
     ILogger<WindowsBackgroundService> logger) : BackgroundService
 {
