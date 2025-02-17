@@ -23,7 +23,10 @@ public sealed class CacheService
     private int? MaxConnections;
     private SemaphoreSlim _connectionLimiter;
     private readonly RequestHandler _requestHandler;
-    private const string Delimiter = "\r\n\r\n";
+    /// <summary>
+    /// Delimiter for separating requests, Windows uses \r\n for new lines, for Unix it is \n
+    /// </summary>
+    private const string Delimiter = "\r\n";
     private readonly BlockingCollection<(TcpClient, Request)> _requestQueue = new();
     private readonly BlockingCollection<(TcpClient, Response)> _responseQueue = new();
 
@@ -34,6 +37,7 @@ public sealed class CacheService
         _logger.LogInformation("CacheService initialized");
         log.Info("CacheService constructor called");
         _requestHandler = requestHandler;
+        // Todo: add a connection limiter
         // _connectionLimiter = _settings.MaxConnections;
     }
 
@@ -46,10 +50,9 @@ public sealed class CacheService
         _logger.LogInformation($"Server listening on port {Port}");
         log.Info($"Cache Service listening on port {Port}");
 
-
-        // Start a new task to process requests
+        // Start a new task asynchronously to process requests
         Task.Run(() => ProcessRequests(stoppingToken), stoppingToken);
-        // Start a new task to send responses
+        // Start a new task asynchronously to send responses
         Task.Run(() => SendResponses(stoppingToken), stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
@@ -121,10 +124,17 @@ public sealed class CacheService
     {
         foreach (var (client, request) in _requestQueue.GetConsumingEnumerable(stoppingToken))
         {
-            Response response = _requestHandler.ProcessRequest(request);
-            _responseQueue.Add((client, response));
+            //Run the ProcessRequest method in a new task
+            Task.Run(() => ProcessRequest(client, request));
         }
     }
+
+    private void ProcessRequest(TcpClient client, Request request)
+    {
+        Response response = _requestHandler.ProcessRequest(request);
+        _responseQueue.Add((client, response));
+    }
+
 
     private void SendResponses(CancellationToken stoppingToken)
     {

@@ -2,6 +2,9 @@ namespace App.WindowsService;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 
+/// <summary>
+/// Processes the <see cref="Request"/> and returns a <see cref="Response"/>. 
+/// </summary>
 public sealed class RequestHandler
 {
     private readonly CommandFactory _commandFactory;
@@ -21,7 +24,7 @@ public sealed class RequestHandler
         }
         catch (Exception ex)
         {
-            return new Response { RequestId = request.RequestId, Code = 500, Message = ex.Message };
+            return new Response { RequestId = request.RequestId, Code = Code.InternalServerError, Message = ex.Message };
         }
     }
 }
