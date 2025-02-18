@@ -14,6 +14,13 @@ public class CacheManager
     private readonly MemoryManager _memoryManager;
     //private readonly ExpiryManager _expiryManager;
 
+    public event EventHandler<CacheEventArgs> CreateEvent;
+    public event EventHandler<CacheEventArgs> UpdateEvent;
+    public event EventHandler<CacheEventArgs> DeleteEvent;
+    public event EventHandler FlushAllEvent;
+
+    public event EventHandler EvictionNeeded;
+
     public CacheManager(MemoryManager memoryManager)
     {
         _cache = new ConcurrentDictionary<string, string>();
@@ -23,7 +30,8 @@ public class CacheManager
 
     public double GetCurrentMemoryUsageInMB() => _memoryManager.GetCurrentMemoryUsageInMB();
 
-    public bool Create(string key, string serializedValue, long ttl){
+    public bool Create(string key, string serializedValue, long ttl)
+    {
         //Todo: Add ExpiryManager logic for ttl and call Create(string key, string serializedValue)
         return Create(key, serializedValue);
     }
@@ -35,15 +43,15 @@ public class CacheManager
         if (!_memoryManager.CanAdd(size))
         {
             log.Error($"Memory limit reached, cannot add more items to the cache, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
-            // Todo: Add Eviction logic here
+            OnEvictionNeeded();
             return false;
         }
 
         if (_cache.TryAdd(key, serializedValue))
         {
-            // Todo: Fire CREATE event here
+            OnCreateEvent(key, serializedValue);
             _memoryManager.Add(size);
-            
+
             // _expiryManager.Add(key);
             log.Debug($"Added key: {key}, Value: {serializedValue}, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
             return true;
@@ -67,7 +75,7 @@ public class CacheManager
 
         if (_cache.TryUpdate(key, newValue, oldValue))
         {
-            // Todo: Fire the update event here
+            OnUpdateEvent(key, oldValue, newValue);
             _memoryManager.Update(oldSize, newSize);
             return true;
         }
@@ -78,7 +86,7 @@ public class CacheManager
     {
         if (_cache.TryRemove(key, out string removedValue))
         {
-            // Todo: Fire the Delete event here
+            OnDeleteEvent(key, removedValue);
             long size = _memoryManager.GetSizeInBytes(key, removedValue);
             _memoryManager.Remove(size);
             //_expiryManager.Remove(key);
@@ -92,7 +100,7 @@ public class CacheManager
         try
         {
             _cache.Clear();
-            // Todo: Fire the FLUSHALL event here
+            OnFlushAllEvent();
             _memoryManager.Remove(_memoryManager.CurrentMemoryUsageInBytes);
             return true;
         }
@@ -102,4 +110,30 @@ public class CacheManager
             throw e;
         }
     }
+
+    protected virtual void OnCreateEvent(string key, string value)
+    {
+        CreateEvent?.Invoke(this, new CacheEventArgs(key, value));
+    }
+
+    protected virtual void OnUpdateEvent(string key, string oldValue, string newValue)
+    {
+        UpdateEvent?.Invoke(this, new CacheEventArgs(key, oldValue, newValue));
+    }
+
+    protected virtual void OnDeleteEvent(string key, string value)
+    {
+        DeleteEvent?.Invoke(this, new CacheEventArgs(key, value));
+    }
+
+    protected virtual void OnFlushAllEvent()
+    {
+        FlushAllEvent?.Invoke(this, EventArgs.Empty);
+    }
+    
+    protected virtual void OnEvictionNeeded()
+    {
+        EvictionNeeded?.Invoke(this, EventArgs.Empty);
+    }
+
 }
