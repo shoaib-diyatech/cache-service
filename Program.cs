@@ -24,6 +24,9 @@ builder.Services.AddWindowsService(options =>
 // Registering CacheManager for DI via container
 builder.Services.AddSingleton<CacheManager>();
 
+// Registering MemoryManager for DI via container, being Injected in CacheManager
+builder.Services.AddSingleton<MemoryManager>();
+
 // Registering RequestHandler for DI via container
 builder.Services.AddTransient<RequestHandler>();
 

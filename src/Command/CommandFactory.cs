@@ -17,7 +17,8 @@ public class CommandFactory
             "UPDATE" => new UpdateCommand(_cacheManager),
             "DELETE" => new DeleteCommand(_cacheManager),
             "MEM" => new MemCommand(_cacheManager),
-            _ => null
+            "ADD" => new AddCommand(_cacheManager),
+            _ => new UnknownCommand()
         };
     }
 }

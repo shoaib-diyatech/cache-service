@@ -94,33 +94,46 @@ public sealed class CacheService
                 {
                     string requestString = accumulatedData.Substring(0, delimiterIndex);
                     accumulatedData = accumulatedData.Substring(delimiterIndex + Delimiter.Length);
+                    // Clearing the requestBuilder since we have extracted the request upto the delimiter
                     requestBuilder.Clear();
+                    // Appending the remaining data to the requestBuilder, if any, otherwise we will loose the data after the delimiter upto the end of the buffer
                     requestBuilder.Append(accumulatedData);
 
                     Console.WriteLine($"Received: {requestString}");
-                    log.Info($"Received: {requestString}");
+                    //log.Info($"Received: {requestString}");
                     if (log.IsDebugEnabled)
                         log.Debug($"Client: {client.Client.RemoteEndPoint} Received: {requestString}");
-
-                    Request request = Request.Parse(requestString, _requestHandler.CommandFactory);
-                    // Adding a dynamic tuple (TcpClient, Request) to the request queue
-                    _requestQueue.Add((client, request));
+                    try
+                    {
+                        Request request = Request.Parse(requestString, _requestHandler.CommandFactory);
+                        // Adding a dynamic tuple (TcpClient, Request) to the request queue
+                        _requestQueue.Add((client, request));
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error parsing request: {ex.Message}");
+                        log.Error($"Error parsing request: {ex.Message}");
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
-            log.Error($"Error: {ex.Message}");
+            Console.WriteLine($"Client: {client.Client.RemoteEndPoint}, Error: {ex.Message}");
+            log.Error($"Client: {client.Client.RemoteEndPoint}, Error: {ex.Message}");
         }
         finally
         {
             client.Close();
-            Console.WriteLine("Client disconnected.");
+            Console.WriteLine($"Client disconnected.{client.Client.RemoteEndPoint}");
             log.Info($"Client disconnected: {client.Client.RemoteEndPoint}");
         }
     }
 
+    /// <summary>
+    /// Processes requests from the request blocking queue, on receiving a new request, it processes the request in a new task
+    /// </summary>
+    /// <param name="stoppingToken"></param>
     private void ProcessRequests(CancellationToken stoppingToken)
     {
         // BlockingQueue waits for new requests to be added to the request queue
@@ -131,13 +144,23 @@ public sealed class CacheService
         }
     }
 
+
+    /// <summary>
+    /// Processes a request, invokes the RequestHandler to process the request and adds the response to the response queue
+    /// Blocks to receive the response from the RequestHandler
+    /// </summary>
+    /// <param name="client"></param>
+    /// <param name="request"></param>
     private void ProcessRequest(TcpClient client, Request request)
     {
         Response response = _requestHandler.ProcessRequest(request);
         _responseQueue.Add((client, response));
     }
 
-
+    /// <summary>
+    /// Sends responses to the clients, blocks to receive responses from the response queue
+    /// </summary>
+    /// <param name="stoppingToken"></param>
     private void SendResponses(CancellationToken stoppingToken)
     {
         foreach (var (client, response) in _responseQueue.GetConsumingEnumerable(stoppingToken))
@@ -145,7 +168,7 @@ public sealed class CacheService
             try
             {
                 NetworkStream stream = client.GetStream();
-                string responseJson = JsonSerializer.Serialize(response);
+                string responseJson = JsonSerializer.Serialize(response) + Delimiter;
                 byte[] responseBytes = Encoding.UTF8.GetBytes(responseJson);
                 stream.WriteAsync(responseBytes, 0, responseBytes.Length).Wait();
             }

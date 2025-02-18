@@ -2,23 +2,32 @@ namespace App.WindowsService;
 
 using System.Threading;
 using log4net;
+using Microsoft.Extensions.Options;
 
+/// <summary>
+/// Manage the memory usage of the cache to maintain the memory limit.
+/// Uses CacheSettings, via DI, to get the max memory limit.
+/// </summary>
 public class MemoryManager
 {
     private static readonly ILog log = LogManager.GetLogger(typeof(MemoryManager));
     private long _currentMemoryUsageInBytes = 0; // Atomic tracking
     private readonly long _maxMemoryUsageInBytes; // Max memory in bytes
 
-    public MemoryManager(long maxMemoryUsageInBytes)
+    public MemoryManager(IOptions<CacheSettings> cacheSettings)
     {
-        _maxMemoryUsageInBytes = maxMemoryUsageInBytes;
+        _maxMemoryUsageInBytes = cacheSettings.Value.CacheSizeInMBs * 1024 * 1024; // Convert MB to Bytes
     }
 
     public long CurrentMemoryUsageInBytes => Interlocked.Read(ref _currentMemoryUsageInBytes);
 
     public bool CanAdd(long size) => Interlocked.Read(ref _currentMemoryUsageInBytes) + size <= _maxMemoryUsageInBytes;
 
-    public bool CanUpdate(long oldSize, long newSize) => Interlocked.Read(ref _currentMemoryUsageInBytes) - oldSize + newSize <= _maxMemoryUsageInBytes;
+    public bool CanUpdate(long oldSize, long newSize)
+    {
+        bool canUpdate = Interlocked.Read(ref _currentMemoryUsageInBytes) - oldSize + newSize <= _maxMemoryUsageInBytes;
+        return canUpdate;
+    }
 
     public void Add(long size) => Interlocked.Add(ref _currentMemoryUsageInBytes, size);
 
@@ -30,7 +39,17 @@ public class MemoryManager
 
     public long GetSizeInBytes(string key, string value)
     {
-        // UTF-16 Encoding (2 bytes per char for .NET strings) + value size
-        return (key.Length * 2) + (value.Length * 2);
+        return GetSizeInBytes(key) + GetSizeInBytes(value);
+    }
+
+    /// <summary>
+    /// Get the size of the string in bytes based on the UTF-16 encoding.
+    /// </summary>
+    /// <param name="value">String value</param>
+    /// <returns>Size of the string in bytes</returns>
+    public long GetSizeInBytes(string value){
+        // UTF-16 Encoding (2 bytes per char for .NET strings)
+        // ConcurrentDictionary uses UTF-16 encoding for strings
+        return value.Length * 2;
     }
 }

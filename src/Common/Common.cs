@@ -16,15 +16,42 @@ public class Request
     public static Request Parse(string requestString, CommandFactory commandFactory)
     {
         // Split the string by spaces
-        string[] parts = requestString.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 3) throw new ArgumentException("Invalid request format.");
+        string[] parts;
+        try
+        {
+            parts = requestString.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
+        }
+        catch (Exception)
+        {
+            //throw new ArgumentException("Invalid request format.");
+            return new Request
+            {
+                RequestId = "0",
+                Command = new UnknownCommand(),
+                Args = new string[] { "" }
+            };
+        }
+        if (parts.Length < 2)
+        {
+            return new Request
+            {
+                RequestId = "0",
+                Command = new UnknownCommand(),
+                Args = new string[] { "" }
+            };
+        }
 
         // Extract the requestId, commandType, and arguments
         // Not using the json parser here since the requestString is not a json string
         // requestString is of the form of <requestId><space><commandType><space><args>
         string requestId = parts[0];
         string commandType = parts[1];
-        string[] args = parts[2].Split(' ');
+        string[] args;
+        if (parts.Length < 3)
+        {
+            args = new string[] { "" };
+        }
+        else { args = parts[2].Split(' '); }
 
         // Get the command from the command factory
         ICommand command = commandFactory.GetCommand(commandType);
@@ -40,13 +67,15 @@ public class Request
     }
 }
 
-public enum Type{
+public enum Type
+{
     Response,
     Event,
     Error
 }
 
-public enum Code{
+public enum Code
+{
     Success = 200,
     Created = 201,
     NoContent = 204,
