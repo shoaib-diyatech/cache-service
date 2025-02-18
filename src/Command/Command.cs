@@ -49,7 +49,6 @@ public class ReadCommand : ICommand
     public ReadCommand(CacheManager cacheManager)
     {
         _cacheManager = cacheManager;
-
     }
 
     public Response Execute(string requestId, string[] args)
@@ -111,7 +110,7 @@ public class MemCommand : ICommand
     {
         if (args.Length < 1) return new Response { RequestId = requestId, Code = Code.BadRequest, Message = "Invalid arguments for MEM command." };
         string memoryUsage = _cacheManager.GetCurrentMemoryUsageInMB().ToString();
-        return new Response { RequestId = requestId, Code = (_cacheManager.GetCurrentMemoryUsageInMB() > 0) ? Code.Success : Code.NotFound, Message = memoryUsage };
+        return new Response { RequestId = requestId, Code = Code.Success, Type = Type.Response, Message = memoryUsage };
     }
 }
 
