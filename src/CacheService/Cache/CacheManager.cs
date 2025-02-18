@@ -41,7 +41,9 @@ public class CacheManager
 
         if (_cache.TryAdd(key, serializedValue))
         {
+            // Todo: Fire CREATE event here
             _memoryManager.Add(size);
+            
             // _expiryManager.Add(key);
             log.Debug($"Added key: {key}, Value: {serializedValue}, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
             return true;
@@ -65,6 +67,7 @@ public class CacheManager
 
         if (_cache.TryUpdate(key, newValue, oldValue))
         {
+            // Todo: Fire the update event here
             _memoryManager.Update(oldSize, newSize);
             return true;
         }
@@ -75,6 +78,7 @@ public class CacheManager
     {
         if (_cache.TryRemove(key, out string removedValue))
         {
+            // Todo: Fire the Delete event here
             long size = _memoryManager.GetSizeInBytes(key, removedValue);
             _memoryManager.Remove(size);
             //_expiryManager.Remove(key);
@@ -88,6 +92,7 @@ public class CacheManager
         try
         {
             _cache.Clear();
+            // Todo: Fire the FLUSHALL event here
             _memoryManager.Remove(_memoryManager.CurrentMemoryUsageInBytes);
             return true;
         }

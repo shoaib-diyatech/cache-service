@@ -27,6 +27,8 @@ public sealed class CacheService
     /// Delimiter for separating requests, Windows uses \r\n for new lines, for Unix it is \n
     /// </summary>
     private const string Delimiter = "\r\n";
+
+    private const int bufferSize = 4;
     private readonly BlockingCollection<(TcpClient, Request)> _requestQueue = new();
     private readonly BlockingCollection<(TcpClient, Response)> _responseQueue = new();
 
@@ -75,7 +77,7 @@ public sealed class CacheService
         Console.WriteLine($"Client connected: {client.Client.RemoteEndPoint}");
         log.Info($"Client connected: {client.Client.RemoteEndPoint}");
         NetworkStream stream = client.GetStream();
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[bufferSize];
         StringBuilder requestBuilder = new StringBuilder();
 
         try
@@ -89,10 +91,13 @@ public sealed class CacheService
                 requestBuilder.Append(chunk);
 
                 string accumulatedData = requestBuilder.ToString();
-                int delimiterIndex;
+                int delimiterIndex;// = accumulatedData.IndexOf(Delimiter);
+                // Loop to handle multiple requests in a single buffer
                 while ((delimiterIndex = accumulatedData.IndexOf(Delimiter)) >= 0)
                 {
+                    // Drop the delimeter string from the accumulated data
                     string requestString = accumulatedData.Substring(0, delimiterIndex);
+                    // Extract the remaining data after the delimiter, could contain a part of the next request, or even a complete request
                     accumulatedData = accumulatedData.Substring(delimiterIndex + Delimiter.Length);
                     // Clearing the requestBuilder since we have extracted the request upto the delimiter
                     requestBuilder.Clear();
@@ -140,6 +145,7 @@ public sealed class CacheService
         foreach (var (client, request) in _requestQueue.GetConsumingEnumerable(stoppingToken))
         {
             //Run the ProcessRequest method in a new task
+            //TOdo: remove the sub task from here
             Task.Run(() => ProcessRequest(client, request));
         }
     }

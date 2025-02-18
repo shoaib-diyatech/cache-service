@@ -94,3 +94,19 @@ public class Response
     public Code Code { get; set; }
     public string Message { get; set; }
 }
+
+public enum EventType
+{
+    Create,
+    Add,
+    Read,
+    Update,
+    Delete,
+    FlushAll
+}
+public class Event
+{
+    public EventType Type { get; set; }
+    public string Name { get; set; }
+    public string Message { get; set; }
+}
