@@ -68,3 +68,36 @@ You can configure the log file location in the `log4net.config` file:
 ```xml
 <file value="cache-service.log" />
 ```
+
+## Test the server
+
+You can connect to the server via Telenet
+
+```bash
+Telnet 127.0.0.1 5000
+```
+Send the commands, here is the format:
+```bash
+<RequestId><space><Command><space><args>
+```
+
+Expects the following commands:
+```
+	reqid:001 CREATE key1 123
+	
+	reqid:001 READ key1
+	
+	reqid:001 UPDATE key1 456989898
+	
+	reqid:001 READ key1
+	
+	reqid:001 DELETE key1
+	
+	reqid:001 READ key1
+	
+	reqid:002 MEM ?
+	
+	reqid:001 FLUSHALL
+```
+
+Replies back in a json format
