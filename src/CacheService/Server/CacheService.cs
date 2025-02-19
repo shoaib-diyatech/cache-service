@@ -23,6 +23,7 @@ public sealed class CacheService
     private int? MaxConnections;
     private SemaphoreSlim _connectionLimiter;
     private readonly RequestHandler _requestHandler;
+    private readonly EventHandler _eventHandler;
     /// <summary>
     /// Delimiter for separating requests, Windows uses \r\n for new lines, for Unix it is \n
     /// </summary>
@@ -32,13 +33,14 @@ public sealed class CacheService
     private readonly BlockingCollection<(TcpClient, Request)> _requestQueue = new();
     private readonly BlockingCollection<(TcpClient, Response)> _responseQueue = new();
 
-    public CacheService(ILogger<CacheService> logger, IOptions<CacheSettings> settings, RequestHandler requestHandler)
+    public CacheService(ILogger<CacheService> logger, IOptions<CacheSettings> settings, RequestHandler requestHandler, EventHandler eventHandler)
     {
         _logger = logger;
         _settings = settings.Value;
         _logger.LogInformation("CacheService initialized");
         log.Info("CacheService constructor called");
         _requestHandler = requestHandler;
+        _eventHandler = eventHandler;
         // Todo: add a connection limiter
         // _connectionLimiter = _settings.MaxConnections;
     }
@@ -159,8 +161,25 @@ public sealed class CacheService
     /// <param name="request"></param>
     private void ProcessRequest(TcpClient client, Request request)
     {
-        Response response = _requestHandler.ProcessRequest(request);
-        _responseQueue.Add((client, response));
+        if (request.Command is SubCommand)
+        {
+            _eventHandler.Process(client, request); // No need to add the response to the response queue, eventHandler adds the response to the response queue
+            // // Handle REGISTER command by forwarding to EventHandler
+            // _eventHandler.RegisterClient(client, request.Args[0]);
+            // _responseQueue.Add((client, new Response
+            // {
+            //     RequestId = request.RequestId,
+            //     Code = Code.Success,
+            //     Type = Type.Response,
+            //     Message = "Registered for event successfully."
+            // }));
+        }
+        else
+        {
+            // Handle other commands
+            Response response = _requestHandler.ProcessRequest(request);
+            _responseQueue.Add((client, response));
+        }
     }
 
     /// <summary>

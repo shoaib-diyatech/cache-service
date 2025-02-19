@@ -131,6 +131,27 @@ public class FlushAllCommand : ICommand
     }
 }
 
+/// <summary>
+/// Command to subscribe to events
+/// Command Syntax: <requestId><space>SUB<space>eventType
+/// </summary>
+public class SubCommand : ICommand
+{
+    private readonly CacheManager _cacheManager;
+
+    public SubCommand(CacheManager cacheManager)
+    {
+        _cacheManager = cacheManager;
+    }
+
+    public Response Execute(string requestId, string[] args)
+    {
+        if (args.Length < 1) return new Response { RequestId = requestId, Code = Code.BadRequest, Type = Type.Error, Message = "Invalid arguments for SUB command." };
+        string eventType = args[0];
+        return new Response { RequestId = requestId, Code = Code.Success, Type = Type.Response, Message = $"Subscribed {eventType} event successfully." };
+    }
+}
+
 public class UnknownCommand : ICommand
 {
     public Response Execute(string requestId, string[] args)

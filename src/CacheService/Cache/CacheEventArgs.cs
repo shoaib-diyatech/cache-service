@@ -19,3 +19,10 @@ public class CacheEventArgs : EventArgs
             Value = newValue;
         }
     }
+
+    public enum CacheEvent{
+        Create,
+        Update,
+        Delete,
+        FlushAll
+    }

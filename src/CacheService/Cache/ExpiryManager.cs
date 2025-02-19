@@ -15,7 +15,7 @@ public sealed class ExpiryManager
 {
     private static readonly ILog log = LogManager.GetLogger(typeof(ExpiryManager));
     private readonly ConcurrentDictionary<string, CacheItem> _cache; // Reference to main cache
-    private readonly SortedDictionary<long, ConcurrentQueue<CacheItem>> _expiryDict;
+    private readonly SortedDictionary<long, HashSet<CacheItem>> _expiryMap;
     private readonly object _lock = new object();
     private readonly int _expiryInterval; // Monitoring thread interval in seconds
     private readonly int _expiryOffset;   // Offset window in seconds
@@ -24,7 +24,7 @@ public sealed class ExpiryManager
     public ExpiryManager(ConcurrentDictionary<string, CacheItem> cache, int expiryInterval = 6)
     {
         _cache = cache;
-        _expiryDict = new SortedDictionary<long, ConcurrentQueue<CacheItem>>();
+        _expiryMap = new SortedDictionary<long, HashSet<CacheItem>>();
 
         _expiryInterval = expiryInterval;
         _expiryOffset = expiryInterval / 2; // ±3 sec if expiryInterval = 6 sec
@@ -41,14 +41,15 @@ public sealed class ExpiryManager
 
         lock (_lock)
         {
-            if (!_expiryDict.TryGetValue(roundedTTL, out var queue))
+            if (!_expiryMap.TryGetValue(roundedTTL, out var set))
             {
-                queue = new ConcurrentQueue<CacheItem>();
-                _expiryDict[roundedTTL] = queue;
+                set = new HashSet<CacheItem>();
+                _expiryMap[roundedTTL] = set;
             }
-            queue.Enqueue(item);
+            set.Add(item); // HashSet prevents duplicate entries automatically
         }
     }
+
 
     /// <summary>
     /// Rounds a given TTL to the nearest expiry bucket based on `_expiryOffset`.
@@ -77,6 +78,22 @@ public sealed class ExpiryManager
         expiryThread.Start();
     }
 
+    public void RemoveItem(CacheItem item)
+    {
+        long ttl = GetRoundedTTL(item.TTL);
+
+        long roundedTTL = GetRoundedTTL(item.TTL);
+
+        if (_expiryMap.TryGetValue(roundedTTL, out var items))
+        {
+            items.Remove(item);  // Remove from HashSet
+            if (items.Count == 0)
+            {
+                _expiryMap.Remove(ttl);  // Remove empty bucket
+            }
+        }
+    }
+
     /// <summary>
     /// Checks for expired items and removes them from cache in batch.
     /// </summary>
@@ -89,24 +106,33 @@ public sealed class ExpiryManager
 
         lock (_lock)
         {
-            foreach (var (ttl, queue) in _expiryDict)
+            foreach (var (ttl, itemSet) in _expiryMap)
             {
-                if (ttl > upperBound) break; // Stop if TTL is beyond offset range
+                if (ttl > upperBound)
+                    break; // Stop if TTL is beyond offset range
 
-                while (queue.TryDequeue(out var expiredItem))
+                // Collect expired items to remove
+                var expiredItems = itemSet
+                    .Where(item => item.TTL <= currentTime)
+                    .ToList(); // ToList prevents modifying collection while iterating
+
+                // Remove from cache and expiry map
+                foreach (var expiredItem in expiredItems)
                 {
-                    _cache.TryRemove(expiredItem.Key, out _); // Remove from main cache
+                    _cache.TryRemove(expiredItem.Key, out _);
+                    itemSet.Remove(expiredItem);
                 }
 
-                if (queue.IsEmpty)
+                if (itemSet.Count == 0)
                     keysToRemove.Add(ttl);
             }
 
-            // Clean up empty keys
+            // Clean up empty TTL buckets
             foreach (var key in keysToRemove)
-                _expiryDict.Remove(key);
+                _expiryMap.Remove(key);
         }
     }
+
 
     /// <summary>
     /// Gets the current timestamp (Unix time in seconds).

@@ -12,19 +12,29 @@ public class CacheManager
     private readonly ConcurrentDictionary<string, string> _cache;
     private static readonly ILog log = LogManager.GetLogger(typeof(CacheManager));
     private readonly MemoryManager _memoryManager;
+    private readonly EventHandler _eventHandler;
     //private readonly ExpiryManager _expiryManager;
 
     public event EventHandler<CacheEventArgs> CreateEvent;
     public event EventHandler<CacheEventArgs> UpdateEvent;
     public event EventHandler<CacheEventArgs> DeleteEvent;
-    public event EventHandler FlushAllEvent;
+    public event EventHandler<CacheEventArgs> FlushAllEvent;
 
-    public event EventHandler EvictionNeeded;
+    public event EventHandler<CacheEventArgs> EvictionNeeded;
 
-    public CacheManager(ConcurrentDictionary<string, string> cache, MemoryManager memoryManager)
+    public CacheManager(ConcurrentDictionary<string, string> cache, MemoryManager memoryManager, EventHandler eventHandler)
     {
         _cache = cache;
         _memoryManager = memoryManager;
+        _eventHandler = eventHandler;
+
+        // Register event handlers
+        CreateEvent += (sender, args) => _eventHandler.NotifySubscribers("CreateEvent", args);
+        UpdateEvent += (sender, args) => _eventHandler.NotifySubscribers("UpdateEvent", args);
+        DeleteEvent += (sender, args) => _eventHandler.NotifySubscribers("DeleteEvent", args);
+        FlushAllEvent += (sender, args) => _eventHandler.NotifySubscribers("FlushAllEvent", args);
+        EvictionNeeded += (sender, args) => _eventHandler.NotifySubscribers("EvictionNeeded", args);
+
         CreateEvent += (sender, args) => { };
         UpdateEvent += (sender, args) => { };
         DeleteEvent += (sender, args) => { };
@@ -116,6 +126,20 @@ public class CacheManager
         }
     }
 
+    // public void Register(
+    //     EventHandler<CacheEventArgs> createHandler = null,
+    //     EventHandler<CacheEventArgs> updateHandler = null,
+    //     EventHandler<CacheEventArgs> deleteHandler = null,
+    //     EventHandler<CacheEventArgs> flushAllHandler = null,
+    //     EventHandler<CacheEventArgs> evictionNeededHandler = null)
+    // {
+    //     if (createHandler != null) CreateEvent += createHandler;
+    //     if (updateHandler != null) UpdateEvent += updateHandler;
+    //     if (deleteHandler != null) DeleteEvent += deleteHandler;
+    //     if (flushAllHandler != null) FlushAllEvent += flushAllHandler;
+    //     if (evictionNeededHandler != null) EvictionNeeded += evictionNeededHandler;
+    // }
+
     protected virtual void OnCreateEvent(string key, string value)
     {
         CreateEvent?.Invoke(this, new CacheEventArgs(key, value));
@@ -133,12 +157,12 @@ public class CacheManager
 
     protected virtual void OnFlushAllEvent()
     {
-        FlushAllEvent?.Invoke(this, EventArgs.Empty);
+        FlushAllEvent?.Invoke(this, new CacheEventArgs(string.Empty, string.Empty));
     }
     
     protected virtual void OnEvictionNeeded()
     {
-        EvictionNeeded?.Invoke(this, EventArgs.Empty);
+        EvictionNeeded?.Invoke(this, new CacheEventArgs(string.Empty, string.Empty));
     }
 
 }
