@@ -21,9 +21,9 @@ public class CacheManager
 
     public event EventHandler EvictionNeeded;
 
-    public CacheManager(MemoryManager memoryManager)
+    public CacheManager(ConcurrentDictionary<string, string> cache, MemoryManager memoryManager)
     {
-        _cache = new ConcurrentDictionary<string, string>();
+        _cache = cache;
         _memoryManager = memoryManager;
         // _expiryManager = expiryManager;
     }

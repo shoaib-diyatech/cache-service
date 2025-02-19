@@ -5,6 +5,7 @@ using log4net;
 using log4net.Config;
 using System.Reflection;
 using System.IO;
+using System.Collections.Concurrent;
 
 Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 // Initialize log4net
@@ -20,6 +21,12 @@ builder.Services.AddWindowsService(options =>
 {
     options.ServiceName = ".net Cache";
 });
+
+// Create a single shared ConcurrentDictionary instance
+var sharedCache = new ConcurrentDictionary<string, string>();
+
+// Register it as a singleton so that the same instance is shared everywhere
+builder.Services.AddSingleton(sharedCache);
 
 // Registering CacheManager for DI via container
 builder.Services.AddSingleton<CacheManager>();
