@@ -6,6 +6,7 @@ using log4net.Config;
 using System.Reflection;
 using System.IO;
 using System.Collections.Concurrent;
+using System.Net.Sockets;
 
 Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 // Initialize log4net
@@ -25,8 +26,16 @@ builder.Services.AddWindowsService(options =>
 // Create a single shared ConcurrentDictionary instance
 var sharedCache = new ConcurrentDictionary<string, string>();
 
+//private readonly BlockingCollection<(TcpClient, Response)> _responseQueue = new();
+var sharedResponseQueue = new BlockingCollection<(TcpClient, Response)>();
+
+builder.Services.AddSingleton(sharedResponseQueue);
+
 // Register it as a singleton so that the same instance is shared everywhere
 builder.Services.AddSingleton(sharedCache);
+
+// Registering EventHandler for DI via container
+builder.Services.AddTransient<EventsHandler>();
 
 // Registering CacheManager for DI via container
 builder.Services.AddSingleton<CacheManager>();

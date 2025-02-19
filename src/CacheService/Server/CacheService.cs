@@ -23,7 +23,7 @@ public sealed class CacheService
     private int? MaxConnections;
     private SemaphoreSlim _connectionLimiter;
     private readonly RequestHandler _requestHandler;
-    private readonly EventHandler _eventHandler;
+    private readonly EventsHandler _eventHandler;
     /// <summary>
     /// Delimiter for separating requests, Windows uses \r\n for new lines, for Unix it is \n
     /// </summary>
@@ -31,9 +31,11 @@ public sealed class CacheService
 
     private const int bufferSize = 4;
     private readonly BlockingCollection<(TcpClient, Request)> _requestQueue = new();
-    private readonly BlockingCollection<(TcpClient, Response)> _responseQueue = new();
+    //private readonly BlockingCollection<(TcpClient, Response)> _responseQueue = new();
 
-    public CacheService(ILogger<CacheService> logger, IOptions<CacheSettings> settings, RequestHandler requestHandler, EventHandler eventHandler)
+    private readonly BlockingCollection<(TcpClient, Response)> _responseQueue;
+
+    public CacheService(ILogger<CacheService> logger, IOptions<CacheSettings> settings, RequestHandler requestHandler, EventsHandler eventHandler, BlockingCollection<(TcpClient, Response)> responseQueue)
     {
         _logger = logger;
         _settings = settings.Value;
@@ -41,6 +43,8 @@ public sealed class CacheService
         log.Info("CacheService constructor called");
         _requestHandler = requestHandler;
         _eventHandler = eventHandler;
+        _responseQueue = responseQueue;
+
         // Todo: add a connection limiter
         // _connectionLimiter = _settings.MaxConnections;
     }
@@ -148,7 +152,9 @@ public sealed class CacheService
         {
             //Run the ProcessRequest method in a new task
             //TOdo: remove the sub task from here
-            Task.Run(() => ProcessRequest(client, request));
+            //Task.Run(() => ProcessRequest(client, request));
+            // Not running ProcessRequest in a new task, to avoid frequent context switching
+            ProcessRequest(client, request);
         }
     }
 
@@ -176,7 +182,7 @@ public sealed class CacheService
         }
         else
         {
-            // Handle other commands
+            // Todo: do not recevie a response here, Requesthandler should add the response to the response queue
             Response response = _requestHandler.ProcessRequest(request);
             _responseQueue.Add((client, response));
         }

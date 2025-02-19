@@ -18,6 +18,8 @@ public class CommandFactory
             "DELETE" => new DeleteCommand(_cacheManager),
             "MEM" => new MemCommand(_cacheManager),
             "ADD" => new AddCommand(_cacheManager),
+            "SUB" => new SubCommand(_cacheManager),
+            "FLUSHALL" => new FlushAllCommand(_cacheManager),
             _ => new UnknownCommand()
         };
     }

@@ -95,18 +95,18 @@ public class Response
     public string Message { get; set; }
 }
 
-public enum EventType
+public enum EventName
 {
     Create,
     Add,
     Read,
     Update,
     Delete,
-    FlushAll
+    FlushAll,
+    Unknown
 }
-public class Event
+public class Event : Response
 {
-    public EventType Type { get; set; }
-    public string Name { get; set; }
+    public EventName Name { get; set; }
     public string Message { get; set; }
 }

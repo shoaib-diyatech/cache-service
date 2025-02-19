@@ -147,8 +147,16 @@ public class SubCommand : ICommand
     public Response Execute(string requestId, string[] args)
     {
         if (args.Length < 1) return new Response { RequestId = requestId, Code = Code.BadRequest, Type = Type.Error, Message = "Invalid arguments for SUB command." };
-        string eventType = args[0];
-        return new Response { RequestId = requestId, Code = Code.Success, Type = Type.Response, Message = $"Subscribed {eventType} event successfully." };
+        string eventN = args[0];
+
+        if (Enum.TryParse<EventName>(eventN, true, out EventName eventName))
+        {
+            return new Response { RequestId = requestId, Code = Code.Success, Type = Type.Response, Message = $"Subscribed to {eventName} event successfully." };
+        }
+        else
+        {
+            return new Response { RequestId = requestId, Code = Code.BadRequest, Type = Type.Error, Message = $"Invalid event type: {eventN}." };
+        }
     }
 }
 

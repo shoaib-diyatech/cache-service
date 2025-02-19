@@ -12,7 +12,7 @@ public class CacheManager
     private readonly ConcurrentDictionary<string, string> _cache;
     private static readonly ILog log = LogManager.GetLogger(typeof(CacheManager));
     private readonly MemoryManager _memoryManager;
-    private readonly EventHandler _eventHandler;
+    //private readonly EventsHandler _eventHandler;
     //private readonly ExpiryManager _expiryManager;
 
     public event EventHandler<CacheEventArgs> CreateEvent;
@@ -22,24 +22,24 @@ public class CacheManager
 
     public event EventHandler<CacheEventArgs> EvictionNeeded;
 
-    public CacheManager(ConcurrentDictionary<string, string> cache, MemoryManager memoryManager, EventHandler eventHandler)
+    public CacheManager(ConcurrentDictionary<string, string> cache, MemoryManager memoryManager)
     {
         _cache = cache;
         _memoryManager = memoryManager;
-        _eventHandler = eventHandler;
+        //_eventHandler = eventHandler;
 
-        // Register event handlers
-        CreateEvent += (sender, args) => _eventHandler.NotifySubscribers("CreateEvent", args);
-        UpdateEvent += (sender, args) => _eventHandler.NotifySubscribers("UpdateEvent", args);
-        DeleteEvent += (sender, args) => _eventHandler.NotifySubscribers("DeleteEvent", args);
-        FlushAllEvent += (sender, args) => _eventHandler.NotifySubscribers("FlushAllEvent", args);
-        EvictionNeeded += (sender, args) => _eventHandler.NotifySubscribers("EvictionNeeded", args);
+        // // Register event handlers
+        // CreateEvent += (sender, args) => _eventHandler.NotifySubscribers("CreateEvent", args);
+        // UpdateEvent += (sender, args) => _eventHandler.NotifySubscribers("UpdateEvent", args);
+        // DeleteEvent += (sender, args) => _eventHandler.NotifySubscribers("DeleteEvent", args);
+        // FlushAllEvent += (sender, args) => _eventHandler.NotifySubscribers("FlushAllEvent", args);
+        // EvictionNeeded += (sender, args) => _eventHandler.NotifySubscribers("EvictionNeeded", args);
 
-        CreateEvent += (sender, args) => { };
-        UpdateEvent += (sender, args) => { };
-        DeleteEvent += (sender, args) => { };
-        FlushAllEvent += (sender, args) => { };
-        EvictionNeeded += (sender, args) => { };
+        // CreateEvent += (sender, args) => { };
+        // UpdateEvent += (sender, args) => { };
+        // DeleteEvent += (sender, args) => { };
+        // FlushAllEvent += (sender, args) => { };
+        // EvictionNeeded += (sender, args) => { };
         // _expiryManager = expiryManager;
     }
 
