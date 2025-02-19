@@ -25,6 +25,11 @@ public class CacheManager
     {
         _cache = cache;
         _memoryManager = memoryManager;
+        CreateEvent += (sender, args) => { };
+        UpdateEvent += (sender, args) => { };
+        DeleteEvent += (sender, args) => { };
+        FlushAllEvent += (sender, args) => { };
+        EvictionNeeded += (sender, args) => { };
         // _expiryManager = expiryManager;
     }
 
