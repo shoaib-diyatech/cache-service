@@ -55,8 +55,11 @@ public class ReadCommand : ICommand
     {
         if (args.Length < 1) return new Response { RequestId = requestId, Code = Code.BadRequest, Type = Type.Error, Message = "Invalid arguments for READ command." };
         string key = args[0];
-        bool success = _cacheManager.Read(key, out string value);
-        return new Response { RequestId = requestId, Code = success ? Code.Success : Code.NotFound, Type = success ? Type.Response : Type.Error, Message = value };
+        string value = (string)_cacheManager.Read(key);
+        if (value != null)
+            return new Response { RequestId = requestId, Code = Code.Success, Type = Type.Response, Message = value };
+        else
+            return new Response { RequestId = requestId, Code = Code.NotFound, Type = Type.Error, Message = $"Key {key} not found" };
     }
 }
 
@@ -92,8 +95,9 @@ public class DeleteCommand : ICommand
     {
         if (args.Length < 1) return new Response { RequestId = requestId, Code = Code.BadRequest, Type = Type.Error, Message = "Invalid arguments for DELETE command." };
         string key = args[0];
-        bool isDeleted = _cacheManager.Delete(key);
-        return new Response { RequestId = requestId, Code = isDeleted ? Code.Success : Code.NotFound, Type = isDeleted ? Type.Response : Type.Error, Message = isDeleted ? "Key Deleted Successfully" : "Key not found." };
+        _cacheManager.Delete(key);
+        //return new Response { RequestId = requestId, Code = isDeleted ? Code.Success : Code.NotFound, Type = isDeleted ? Type.Response : Type.Error, Message = isDeleted ? "Key Deleted Successfully" : "Key not found." };
+        return new Response { RequestId = requestId, Code = Code.NoContent, Type = Type.Response, Message = "" };
     }
 }
 
@@ -126,8 +130,10 @@ public class FlushAllCommand : ICommand
     public Response Execute(string requestId, string[] args)
     {
         if (args.Length < 0) return new Response { RequestId = requestId, Code = Code.BadRequest, Type = Type.Error, Message = "Invalid arguments for FLUSH ALL command." };
-        bool success = _cacheManager.FlushAll();
-        return new Response { RequestId = requestId, Code = success ? Code.Success : Code.NotFound, Type = success ? Type.Response : Type.Error, Message = "Key not found." };
+        //bool success = _cacheManager.Clear();
+        //return new Response { RequestId = requestId, Code = success ? Code.Success : Code.NotFound, Type = success ? Type.Response : Type.Error, Message = "Key not found." };
+        _cacheManager.Clear();
+        return new Response { RequestId = requestId, Code = Code.Success, Type = Type.Response, Message = "" };
     }
 }
 
