@@ -55,9 +55,9 @@ public class ReadCommand : ICommand
     {
         if (args.Length < 1) return new Response { RequestId = requestId, Code = Code.BadRequest, Type = Type.Error, Message = "Invalid arguments for READ command." };
         string key = args[0];
-        string value = (string)_cacheManager.Read(key);
+        object value = _cacheManager.Read(key);
         if (value != null)
-            return new Response { RequestId = requestId, Code = Code.Success, Type = Type.Response, Message = value };
+            return new Response { RequestId = requestId, Code = Code.Success, Type = Type.Response, Message = (string)value, Value = value };
         else
             return new Response { RequestId = requestId, Code = Code.NotFound, Type = Type.Error, Message = $"Key {key} not found" };
     }

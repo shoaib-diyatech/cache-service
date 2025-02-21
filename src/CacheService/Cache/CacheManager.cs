@@ -25,9 +25,10 @@ public class CacheManager
 
     public event EventHandler<CacheEventArgs> EvictionNeeded;
 
-    public CacheManager(Dictionary<string, string> cache, MemoryManager memoryManager)
+    //public CacheManager(Dictionary<string, string> cache, MemoryManager memoryManager)
+    public CacheManager(MemoryManager memoryManager)
     {
-        _cache = cache;
+        _cache = new();
         _memoryManager = memoryManager;
         //_eventHandler = eventHandler;
 

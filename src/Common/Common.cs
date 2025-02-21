@@ -93,6 +93,8 @@ public class Response
     public Type Type { get; set; }
     public Code Code { get; set; }
     public string Message { get; set; }
+
+    public object Value { get; set; }
 }
 
 public enum EventName
