@@ -1,3 +1,5 @@
+namespace App.WindowsService;
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -14,19 +16,22 @@ using log4net;
 public sealed class ExpiryManager
 {
     private static readonly ILog log = LogManager.GetLogger(typeof(ExpiryManager));
-    private readonly ConcurrentDictionary<string, CacheItem> _cache; // Reference to main cache
+    //private readonly ConcurrentDictionary<string, CacheItem> _cache; // Reference to main cache
+
+    private readonly CacheManagerCore _cacheManagerCore;
     private readonly SortedDictionary<long, HashSet<CacheItem>> _expiryMap;
     private readonly object _lock = new object();
-    private readonly int _expiryInterval; // Monitoring thread interval in seconds
+    private readonly int _monitoringIntervalInSecs; // Monitoring thread interval in seconds
     private readonly int _expiryOffset;   // Offset window in seconds
     private bool _isRunning = true;
 
-    public ExpiryManager(ConcurrentDictionary<string, CacheItem> cache, int expiryInterval = 6)
+    public ExpiryManager(ConcurrentDictionary<string, CacheItem> cache, int expiryInterval = 6, CacheManagerCore cacheManagerCore)
     {
-        _cache = cache;
+        //_cache = cache;
+        _cacheManagerCore = cacheManagerCore;
         _expiryMap = new SortedDictionary<long, HashSet<CacheItem>>();
 
-        _expiryInterval = expiryInterval;
+        _monitoringIntervalInSecs = expiryInterval;
         _expiryOffset = expiryInterval / 2; // ±3 sec if expiryInterval = 6 sec
 
         StartExpiryThread();
@@ -37,26 +42,29 @@ public sealed class ExpiryManager
     /// </summary>
     public void Add(CacheItem item)
     {
-        long roundedTTL = GetRoundedTTL(item.TTL);
+        long roundedTTL = GetRoundedTTL(item.TTL); // Getting the nearest expiry bucket so that near expiry items can be removed together
 
         lock (_lock)
         {
             if (!_expiryMap.TryGetValue(roundedTTL, out var set))
             {
+                // Create a new bucket if it doesn't exist
                 set = new HashSet<CacheItem>();
                 _expiryMap[roundedTTL] = set;
             }
+            // Add to an existing expiry bucket
             set.Add(item); // HashSet prevents duplicate entries automatically
         }
     }
 
 
     /// <summary>
-    /// Rounds a given TTL to the nearest expiry bucket based on `_expiryOffset`.
+    /// Rounds a given TTL to the nearest expiry bucket based on `_monitoringIntervalInSecs`.
+    /// Will always return the same value for the same TTL.
     /// </summary>
     private long GetRoundedTTL(long ttl)
     {
-        return (ttl / _expiryInterval) * _expiryInterval;
+        return (ttl / _monitoringIntervalInSecs) * _monitoringIntervalInSecs;
     }
 
     /// <summary>
@@ -69,7 +77,7 @@ public sealed class ExpiryManager
             while (_isRunning)
             {
                 ExpireItems();
-                Thread.Sleep(_expiryInterval * 1000); // Sleep for configured interval
+                Thread.Sleep(_monitoringIntervalInSecs * 1000); // Sleep for configured interval
             }
         })
         {
@@ -78,58 +86,93 @@ public sealed class ExpiryManager
         expiryThread.Start();
     }
 
+    /// <summary>
+    /// Removes a cache item from _expiryMap, to be called after removing from the main cache.
+    /// </summary>
     public void RemoveItem(CacheItem item)
     {
-        long ttl = GetRoundedTTL(item.TTL);
+        long roundedTTL = GetRoundedTTL(item.TTL); // Will always return the same value for the same TTL
 
-        long roundedTTL = GetRoundedTTL(item.TTL);
-
-        if (_expiryMap.TryGetValue(roundedTTL, out var items))
+        lock (_lock)
         {
-            items.Remove(item);  // Remove from HashSet
-            if (items.Count == 0)
+            if (_expiryMap.TryGetValue(roundedTTL, out var items))
             {
-                _expiryMap.Remove(ttl);  // Remove empty bucket
+                items.Remove(item);  // Remove from HashSet
+                if (items.Count == 0)
+                {
+                    _expiryMap.Remove(roundedTTL);  // Remove empty bucket, for freeing up memory
+                }
             }
         }
     }
 
     /// <summary>
-    /// Checks for expired items and removes them from cache in batch.
+    /// Checks for expired items and removes them from cache
     /// </summary>
     public void ExpireItems()
     {
         long currentTime = GetCurrentTimestamp();
-        long lowerBound = currentTime - _expiryOffset;
         long upperBound = currentTime + _expiryOffset;
-        List<long> keysToRemove = new();
+        
+        List<long> keysToRemoveFromExpiryMap = new(); // Track keys of empty TTL buckets in _expiryMap
+        List<string> keysToRemoveFromCache = new();
+        log.Debug($"ExpiryManager: Checking for expired items at {currentTime}");
+
+        List<long> keysInExpiryMapLessThanUpperBound = new List<long>();
+
+        // Copy keys that are less than upperBound to a separate list to minimize lock contention
+        lock (_lock)
+        {
+            foreach (long ttl in _expiryMap.Keys)
+            {
+                if (ttl <= upperBound)
+                {
+                    keysInExpiryMapLessThanUpperBound.Add(ttl);  // Add to list if the ttl is less than upperBound
+                }
+                else
+                {
+                    break;  // Stop if TTL is beyond offset range, No need to iterate through all the keys, we have got what we need
+                }
+            }
+        }
+
+        // Loop through the keys that are less than upperBound
+        foreach (var ttl in keysInExpiryMapLessThanUpperBound)
+        {
+            HashSet<CacheItem> itemSet;
+            lock (_lock)
+            {
+                itemSet = _expiryMap[ttl]; // the hashset against the rounded TTL bucket
+                                               // if(ttl > upperBount) break; // No need to check ttl again, since we are already iterating over keys less than upperBound
+            }
+            // Remove from cache and expiry map
+            foreach (var expiredItem in itemSet.ToList())
+            {
+                //_cacheManagerCore.Delete(expiredItem.Key); // Not removing from main cache here, since we are inside a lock, can cause deadlock
+                itemSet.Remove(expiredItem);
+                keysToRemoveFromCache.Add(expiredItem.Key); // These are they keys which we have to remove from the main cache, cannot remove inside lock
+            }
+
+            if (itemSet.Count == 0)
+                keysToRemoveFromExpiryMap.Add(ttl); // These are empty TTL buckets
+        }
 
         lock (_lock)
         {
-            foreach (var (ttl, itemSet) in _expiryMap)
-            {
-                if (ttl > upperBound)
-                    break; // Stop if TTL is beyond offset range
-
-                // Collect expired items to remove
-                var expiredItems = itemSet
-                    .Where(item => item.TTL <= currentTime)
-                    .ToList(); // ToList prevents modifying collection while iterating
-
-                // Remove from cache and expiry map
-                foreach (var expiredItem in expiredItems)
-                {
-                    _cache.TryRemove(expiredItem.Key, out _);
-                    itemSet.Remove(expiredItem);
-                }
-
-                if (itemSet.Count == 0)
-                    keysToRemove.Add(ttl);
-            }
-
             // Clean up empty TTL buckets
-            foreach (var key in keysToRemove)
-                _expiryMap.Remove(key);
+            foreach (var key in keysToRemoveFromExpiryMap)
+            {
+                // Need to check null again, since key might contain a value now, since lock was released after getting the keys
+                //if(_expiryMap.ContainsKey(key) && _expiryMap[key].Count == 0)
+                // No need to check for empty TTL bucket, because a new entry cannot be added to an old TTL bucket
+                    _expiryMap.Remove(key); 
+            }
+        }
+
+        // Removing items from main cache outside lock to prevent deadlocks
+        foreach (var key in keysToRemoveFromCache)
+        {
+            _cacheManagerCore.Delete(key);
         }
     }
 
