@@ -66,9 +66,16 @@ public sealed class CacheService
 
         // Start a new task asynchronously to send responses
         Task.Run(() => SendResponses(stoppingToken), stoppingToken);
-      
+
         // Start a new task for listener
         Task.Run(() => StartListener(stoppingToken), stoppingToken);
+    }
+
+    public async Task Stop()
+    {
+        _clientListener?.Stop();
+        _logger.LogInformation("Server stopped");
+        log.Info("Cache Service stopped");
     }
 
 
@@ -124,17 +131,29 @@ public sealed class CacheService
                     requestBuilder.Append(accumulatedData);
 
                     Console.WriteLine($"Received: {requestString}");
-
+                    Request request = null;
                     try
                     {
-                        Request? request = JsonSerializer.Deserialize<Request>(requestString);
+                        request = JsonSerializer.Deserialize<Request>(requestString);
+                        if (request != null)
+                            _requestQueue.Add((client, request));
+
+                        {
+                            _requestQueue.Add((client, request));
+                        }
+                    }
+                    catch (JsonException ex)
+                    {
                         if (request == null)
                         {
                             request = Request.Parse(requestString);
                         }
                         if (request != null)
-                        {
                             _requestQueue.Add((client, request));
+                        else
+                        {
+                            Console.WriteLine($"Error parsing request: {ex.Message}");
+                            log.Error($"Error parsing request: {ex.Message}");
                         }
                     }
                     catch (Exception ex)
@@ -184,7 +203,7 @@ public sealed class CacheService
     /// <param name="request"></param>
     private void ProcessRequest(TcpClient client, Request request)
     {
-        if(request.Type == RequestType.Event)
+        if (request.Type == RequestType.Event)
         {
             _messageEventsHandler.Process(client, request);
         }

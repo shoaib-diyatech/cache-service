@@ -18,6 +18,9 @@ public sealed class WindowsBackgroundService(
                 await cacheService.Start(stoppingToken); // Start listening on the TCP port
 
                 //await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                // Wait until the cancellation token is triggered
+                await Task.Delay(Timeout.Infinite, stoppingToken);
+
             }
         }
         catch (OperationCanceledException)
@@ -25,7 +28,7 @@ public sealed class WindowsBackgroundService(
             // When the stopping token is canceled, for example, a call made from services.msc,
             // we shouldn't exit with a non-zero exit code. In other words, this is expected...
             logger.LogWarning("Service is stopping...");
-            log.Debug("Service is stopping...");    
+            log.Debug("Service is stopping...");
         }
         catch (Exception ex)
         {

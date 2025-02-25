@@ -48,9 +48,6 @@ public class Request
     /// <exception cref="ArgumentException"></exception>
     public static Request Parse(string requestString)
     {
-        Request request = new Request();
-        request.RequestString = requestString;
-
         // Split the string by spaces
         string[] parts;
         try
@@ -112,6 +109,7 @@ public class Request
             RequestId = requestId,
             Command = command,
             Type = RequestType.Command,
+            RequestString = requestString,
             Args = args
         };
     }
