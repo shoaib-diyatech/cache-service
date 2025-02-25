@@ -238,9 +238,24 @@ public class SubCommand : ICommand
     public ICommand Parse(string commandString)
     {
         string[] parts = commandString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2) throw new ArgumentException("Invalid arguments for SUB command.");
-        if (!Enum.TryParse<EventName>(parts[1], true, out EventName eventType)) throw new ArgumentException($"Invalid event type: {parts[1]}.");
-        return new SubCommand(eventType);
+        if (parts.Length < 1) throw new ArgumentException("Invalid arguments for SUB command.");
+        if (parts.Length == 1)
+        {
+            // If only one part is present, then it must be the event type
+            if (!Enum.TryParse<EventName>(parts[0], true, out EventName eventType)) throw new ArgumentException($"Invalid event type: {parts[0]}.");
+            return new SubCommand(eventType);
+        }
+        else if (parts.Length >= 2)
+        {
+            // If parts length is greater than 2, then get only the first two parts and ignore the rest
+            if (parts[0].ToUpper() != "SUB") throw new ArgumentException("Invalid arguments for SUB command.");
+            if (!Enum.TryParse<EventName>(parts[1], true, out EventName eventType)) throw new ArgumentException($"Invalid event type: {parts[1]}.");
+            return new SubCommand(eventType);
+        }
+        else
+        {
+            throw new ArgumentException("Invalid arguments for SUB command.");
+        }
     }
 
     public SubCommand()
@@ -282,10 +297,25 @@ public class UnsubCommand : ICommand
     /// <exception cref="ArgumentException"></exception>
     public ICommand Parse(string commandString)
     {
-        string[] parts = commandString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2) throw new ArgumentException("Invalid arguments for UNSUB command.");
-        if (!Enum.TryParse<EventName>(parts[1], true, out EventName eventType)) throw new ArgumentException($"Invalid event type: {parts[1]}.");
-        return new UnsubCommand(eventType);
+      string[] parts = commandString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 1) throw new ArgumentException("Invalid arguments for SUB command.");
+        if (parts.Length == 1)
+        {
+            // If only one part is present, then it must be the event type
+            if (!Enum.TryParse<EventName>(parts[0], true, out EventName eventType)) throw new ArgumentException($"Invalid event type: {parts[0]}.");
+            return new UnsubCommand(eventType);
+        }
+        else if (parts.Length >= 2)
+        {
+            // If parts length is greater than 2, then get only the first two parts and ignore the rest
+            if (parts[0].ToUpper() != "SUB") throw new ArgumentException("Invalid arguments for SUB command.");
+            if (!Enum.TryParse<EventName>(parts[1], true, out EventName eventType)) throw new ArgumentException($"Invalid event type: {parts[1]}.");
+            return new UnsubCommand(eventType);
+        }
+        else
+        {
+            throw new ArgumentException("Invalid arguments for SUB command.");
+        }
     }
     public UnsubCommand()
     {
@@ -311,8 +341,8 @@ public class UnknownCommand : ICommand
 {
     public bool Validate(string[] args)
     {
-        // No validation needed for unknown command
-        return true;
+        // Unknown command should never be validated
+        return false;
     }
 
     public ICommand Parse(string commandString)

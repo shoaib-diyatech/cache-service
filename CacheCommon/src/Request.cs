@@ -82,6 +82,7 @@ public class Request
         string requestId = parts[0];
         string commandType = parts[1];
         ICommand command = new UnknownCommand();
+        RequestType requestType = RequestType.Unknown;
 
         string[] args;
         if (parts.Length < 3)
@@ -104,6 +105,14 @@ public class Request
             else
             {
                 command = command.Parse(parts[2]);
+                if(command is SubCommand || command is UnsubCommand)
+                {
+                    requestType = RequestType.Event;
+                }
+                else
+                {
+                    requestType = RequestType.Command;
+                }
                 args = parts[2].Split(' ');
             }
         }
@@ -113,7 +122,7 @@ public class Request
         {
             RequestId = requestId,
             Command = command,
-            Type = RequestType.Command,
+            Type = requestType,
             RequestString = requestString,
             Args = args
         };
