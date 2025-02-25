@@ -23,6 +23,7 @@ public sealed class ReqEventHandler : MessageHandler
         _cacheSettings = cacheSettings;
         _serviceProvider = serviceProvider;
         _commandExecutor = commandExecutor;
+        _eventSubscribers = new ConcurrentDictionary<EventName, List<TcpClient>>();
 
         // Subscribe to CacheManager events
         _serviceProvider.CreateEvent += (sender, args) => NotifySubscribers(EventName.Create, args);

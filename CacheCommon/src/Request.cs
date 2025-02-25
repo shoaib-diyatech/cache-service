@@ -52,6 +52,8 @@ public class Request
         string[] parts;
         try
         {
+            // first spliting only 3 parts to get the requestId and commandType
+            // third part will be the args
             parts = requestString.Split(' ', 3, StringSplitOptions.RemoveEmptyEntries);
         }
         catch (Exception)
@@ -79,28 +81,31 @@ public class Request
         // requestString is of the form of <requestId><space><commandType><space><args>
         string requestId = parts[0];
         string commandType = parts[1];
+        ICommand command = new UnknownCommand();
+
         string[] args;
         if (parts.Length < 3)
         {
             args = new string[] { "" };
         }
-        else { args = parts[2].Split(' '); }
-
-        // Validate the request ID
-        if (string.IsNullOrWhiteSpace(requestId)) throw new ArgumentException("Invalid request ID.");
-
-        // Get the command from the command factory
-        ICommand command = CommandFactory.GetCommand(commandType);
-        if (command == null) throw new ArgumentException("Invalid command type.");
-
-        try
+        else
         {
-            // Validate the command arguments
-            command.Validate(args);
-        }
-        catch (Exception)
-        {
-            throw new ArgumentException($"Invalid arguments for command: {commandType}.");
+            // Get the command from the command factory
+            command = CommandFactory.GetCommand(commandType);
+            if (command is UnknownCommand)
+            {
+                return new Request
+                {
+                    RequestId = "0",
+                    Command = new UnknownCommand(),
+                    Args = new string[] { "" }
+                };
+            }
+            else
+            {
+                command = command.Parse(parts[2]);
+                args = parts[2].Split(' ');
+            }
         }
 
         // Create and return the Request object
