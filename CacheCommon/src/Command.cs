@@ -73,7 +73,7 @@ public class ReadCommand : ICommand
     public ICommand Parse(string commandString)
     {
         string[] parts = commandString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2) throw new ArgumentException("Invalid arguments for READ command.");
+        if (parts.Length < 1) throw new ArgumentException("Invalid arguments for READ command.");
         int startIndex = parts[0].ToUpper() == "READ" ? 1 : 0;
         if (parts.Length - startIndex < 1) throw new ArgumentException("Invalid arguments for READ command.");
         string key = parts[startIndex];
@@ -168,7 +168,7 @@ public class DeleteCommand : ICommand
     public ICommand Parse(string commandString)
     {
         string[] parts = commandString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (parts.Length < 2) throw new ArgumentException("Invalid arguments for DELETE command.");
+        if (parts.Length < 1) throw new ArgumentException("Invalid arguments for DELETE command.");
         int startIndex = parts[0].ToUpper() == "DELETE" ? 1 : 0;
         if (parts.Length - startIndex < 1) throw new ArgumentException("Invalid arguments for DELETE command.");
         string key = parts[startIndex];

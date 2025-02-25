@@ -146,7 +146,15 @@ public sealed class CacheService
                     {
                         if (request == null)
                         {
-                            request = Request.Parse(requestString);
+                            try
+                            {
+                                request = Request.Parse(requestString);
+                            }
+                            catch (Exception exInner)
+                            {
+                                Console.WriteLine($"Error parsing request: {exInner.Message}");
+                                log.Error($"Error parsing request: {exInner.Message}");
+                            }
                         }
                         if (request != null)
                             _requestQueue.Add((client, request));

@@ -59,16 +59,22 @@ public class CommandExecutor
 
             }
         }
-        else if (command is SubCommand)
-        {
-            SubCommand subCommand = (SubCommand)command;
-            return new Response { RequestId = requestId, Code = Code.Success, Type = ResponseType.Event, Message = $"Subscribed to {subCommand.EventType}" };
+        else if (command is MemCommand){
+            MemCommand memCommand = (MemCommand)command;
+            double memUsageInMB = _cacheManager.GetCurrentMemoryUsageInMB();
+            return new Response { RequestId = requestId, Code = Code.Success, Type = ResponseType.Response, Message = $"Memory usage: {memUsageInMB} MB" };
         }
-        else if (command is UnsubCommand)
-        {
-            UnsubCommand unsubCommand = (UnsubCommand)command;
-            return new Response { RequestId = requestId, Code = Code.Success, Type = ResponseType.Event, Message = $"Unsubscribed from {unsubCommand.EventType}" };
-        }
+        // Sub and Unsub Will be handled in ReqEventHandler
+        // else if (command is SubCommand)
+        // {
+        //     SubCommand subCommand = (SubCommand)command;
+        //     return new Response { RequestId = requestId, Code = Code.Success, Type = ResponseType.Event, Message = $"Subscribed to {subCommand.EventType}" };
+        // }
+        // else if (command is UnsubCommand)
+        // {
+        //     UnsubCommand unsubCommand = (UnsubCommand)command;
+        //     return new Response { RequestId = requestId, Code = Code.Success, Type = ResponseType.Event, Message = $"Unsubscribed from {unsubCommand.EventType}" };
+        // }
         else if (command is FlushAllCommand)
         {
             FlushAllCommand flushAllCommand = (FlushAllCommand)command;
