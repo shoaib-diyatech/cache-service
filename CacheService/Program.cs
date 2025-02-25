@@ -7,6 +7,7 @@ using System.Reflection;
 using System.IO;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
+using CacheCommon;
 
 Directory.SetCurrentDirectory(AppContext.BaseDirectory);
 // Initialize log4net
@@ -24,7 +25,7 @@ builder.Services.AddWindowsService(options =>
 });
 
 // Create a single shared ConcurrentDictionary instance
-var sharedCache = new ConcurrentDictionary<string, string>();
+//var sharedCache = new ConcurrentDictionary<string, string>();
 
 //private readonly BlockingCollection<(TcpClient, Response)> _responseQueue = new();
 var sharedResponseQueue = new BlockingCollection<(TcpClient, Response)>();
@@ -32,19 +33,26 @@ var sharedResponseQueue = new BlockingCollection<(TcpClient, Response)>();
 builder.Services.AddSingleton(sharedResponseQueue);
 
 // Register it as a singleton so that the same instance is shared everywhere
-builder.Services.AddSingleton(sharedCache);
+//builder.Services.AddSingleton(sharedCache);
 
-// Registering EventHandler for DI via container
-builder.Services.AddTransient<EventsHandler>();
 
 // Registering CacheManager for DI via container
 builder.Services.AddSingleton<CacheManager>();
+
+// Registering CacheManagerCore for DI via container
+builder.Services.AddSingleton<CacheManagerCore>();
 
 // Registering MemoryManager for DI via container, being Injected in CacheManager
 builder.Services.AddSingleton<MemoryManager>();
 
 // Registering RequestHandler for DI via container
 builder.Services.AddTransient<RequestHandler>();
+
+// Registering ReqEventHandler for DI via container
+builder.Services.AddTransient<ReqEventHandler>();
+
+// Registering CommandExecutor for DI via container
+builder.Services.AddTransient<CommandExecutor>();
 
 //Registering CacheService for DI via container
 builder.Services.AddSingleton<App.WindowsService.CacheService>();

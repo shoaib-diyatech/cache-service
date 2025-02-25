@@ -25,7 +25,7 @@ public sealed class ExpiryManager
     private readonly int _expiryOffset;   // Offset window in seconds
     private bool _isRunning = true;
 
-    public ExpiryManager(ConcurrentDictionary<string, CacheItem> cache, int expiryInterval = 6, CacheManagerCore cacheManagerCore)
+    public ExpiryManager(ConcurrentDictionary<string, CacheItem> cache, CacheManagerCore cacheManagerCore, int expiryInterval = 6)
     {
         //_cache = cache;
         _cacheManagerCore = cacheManagerCore;

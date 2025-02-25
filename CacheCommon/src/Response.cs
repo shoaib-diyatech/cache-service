@@ -2,13 +2,13 @@ namespace CacheCommon;
 public class Response
 {
     public string RequestId { get; set; }
-    public Type Type { get; set; }
+    public ResponseType Type { get; set; }
     public Code Code { get; set; }
     public string Message { get; set; }
     public object Value {get; set;}
 }
 
-public enum Type
+public enum ResponseType
 {
     Response,
     Event,

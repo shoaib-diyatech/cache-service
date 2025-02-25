@@ -1,8 +1,8 @@
 namespace CacheCommon;
 public class CommandFactory
 {
-
-    public ICommand GetCommand(string commandType)
+    // Todo: make GetCommand method static
+    public static ICommand GetCommand(string commandType)
     {
         return commandType.ToUpper() switch
         {
@@ -12,6 +12,7 @@ public class CommandFactory
             "DELETE" => new DeleteCommand(),
             "MEM" => new MemCommand(),
             "SUB" => new SubCommand(),
+            "UNSUB" => new UnsubCommand(),
             "FLUSHALL" => new FlushAllCommand(),
             _ => new UnknownCommand()
         };
