@@ -20,6 +20,8 @@ public class CacheManagerCore
     public event EventHandler<CacheEventArgs> FlushAllEvent;
     public event EventHandler<CacheEventArgs> EvictionNeeded;
 
+    public event EventHandler<CacheEventArgs> ReadEvent;
+
     public CacheManagerCore(MemoryManager memoryManager)
     {
         _cache = new();
@@ -66,10 +68,17 @@ public class CacheManagerCore
 
     public object Read(string key)
     {
+        bool isReadSuccessfully = false;
+        CacheItem item = null;
         lock (_lock)
         {
-            return _cache.TryGetValue(key, out CacheItem item) ? item.Value : null;
+            isReadSuccessfully = _cache.TryGetValue(key, out item) ? true : false;
         }
+        if(isReadSuccessfully)
+        {
+            OnReadEvent(key);
+        }
+        return isReadSuccessfully ? item.Value : null;
     }
 
     public bool Update(CacheItem item)
@@ -179,5 +188,10 @@ public class CacheManagerCore
     protected virtual void OnEvictionNeeded()
     {
         EvictionNeeded?.Invoke(this, new CacheEventArgs(string.Empty, string.Empty));
+    }
+
+    protected virtual void OnReadEvent(string key)
+    {
+        ReadEvent?.Invoke(this, new CacheEventArgs(key, string.Empty));
     }
 }
