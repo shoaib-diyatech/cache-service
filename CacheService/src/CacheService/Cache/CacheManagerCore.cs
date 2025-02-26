@@ -22,8 +22,14 @@ public class CacheManagerCore
 
     public event EventHandler<CacheEventArgs> ReadEvent;
 
-    public CacheManagerCore(MemoryManager memoryManager)
+    private readonly CacheSettings _cacheSettings;
+
+    private readonly float EvictionThreshold;
+
+    public CacheManagerCore(CacheSettings cacheSettings, MemoryManager memoryManager)
     {
+        _cacheSettings = cacheSettings;
+        EvictionThreshold = _cacheSettings.EvictionThreshold;
         _cache = new();
         _memoryManager = memoryManager;
     }
@@ -74,7 +80,7 @@ public class CacheManagerCore
         {
             isReadSuccessfully = _cache.TryGetValue(key, out item) ? true : false;
         }
-        if(isReadSuccessfully)
+        if (isReadSuccessfully)
         {
             OnReadEvent(key);
         }

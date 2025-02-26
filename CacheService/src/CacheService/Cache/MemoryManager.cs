@@ -14,9 +14,12 @@ public class MemoryManager
     private long _currentMemoryUsageInBytes = 0; // Atomic tracking
     private readonly long _maxMemoryUsageInBytes; // Max memory in bytes
 
+    private readonly float EvictionThreshold;
+
     public MemoryManager(IOptions<CacheSettings> cacheSettings)
     {
         _maxMemoryUsageInBytes = cacheSettings.Value.CacheSizeInMBs * 1024 * 1024; // Convert MB to Bytes
+        EvictionThreshold = cacheSettings.Value.EvictionThreshold;
     }
 
     public long CurrentMemoryUsageInBytes => Interlocked.Read(ref _currentMemoryUsageInBytes);
@@ -41,6 +44,16 @@ public class MemoryManager
     {
         bool canUpdate = Interlocked.Read(ref _currentMemoryUsageInBytes) - oldSize + newSize <= _maxMemoryUsageInBytes;
         return canUpdate;
+    }
+
+    /// <summary>
+    /// Determines if eviction is needed based on the current memory usage and the eviction threshold.
+    /// </summary>
+    /// <returns>True if eviction is needed, otherwise false.</returns>
+    public bool EvictionNeeded()
+    {
+        long currentMemoryUsage = Interlocked.Read(ref _currentMemoryUsageInBytes);
+        return currentMemoryUsage >= _maxMemoryUsageInBytes * EvictionThreshold;
     }
 
     public void Add(long size) => Interlocked.Add(ref _currentMemoryUsageInBytes, size);

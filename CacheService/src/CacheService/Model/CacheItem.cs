@@ -4,6 +4,11 @@ public class CacheItem
     public string Key { get; set; }
     public object Value { get; set; }
     public long TTL { get; set; }
+
+    /// <summary>
+    /// Usage count of the cache item.
+    /// </summary>
+    public int UsageCount { get; set; }
 }
 
 //public interface IValue
