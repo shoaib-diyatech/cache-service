@@ -73,12 +73,24 @@ public sealed class ReqEventHandler : MessageHandler
     public void RegisterClient(TcpClient client, EventName eventName)
     {
         log.Debug($"Registering client: {client.Client.RemoteEndPoint} for event: {eventName}");
+        // Check if the event exists in the dictionary
         if (!_eventSubscribers.ContainsKey(eventName))
         {
+            // Create a new list for the event against the event name
             _eventSubscribers[eventName] = new List<TcpClient>();
         }
-        _eventSubscribers[eventName].Add(client);
-        log.Info($"Client: {client.Client.RemoteEndPoint} subscribed to event: {eventName}");
+        if (_eventSubscribers[eventName].Contains(client))
+        {
+            log.Warn($"Client: {client.Client.RemoteEndPoint} already registered for event: {eventName}");
+            return;
+        }
+        else
+        {
+            // Add the client to the list of subscribers for the event
+            _eventSubscribers[eventName].Add(client);
+            log.Info($"Client: {client.Client.RemoteEndPoint} subscribed to event: {eventName}");
+        }
+
     }
 
     public void UnregisterClient(TcpClient client, EventName eventName)
@@ -86,9 +98,16 @@ public sealed class ReqEventHandler : MessageHandler
         log.Debug($"Unregistering client: {client.Client.RemoteEndPoint} for event: {eventName}");
         if (_eventSubscribers.ContainsKey(eventName))
         {
-            _eventSubscribers[eventName].Remove(client);
-            log.Info($"Client: {client.Client.RemoteEndPoint} unsubscribed from event: {eventName}");
+            if (_eventSubscribers[eventName].Contains(client))
+            {
+                _eventSubscribers[eventName].Remove(client);
+                log.Info($"Client: {client.Client.RemoteEndPoint} unsubscribed from event: {eventName}");
+            }
+            else
+                log.Warn($"Client: {client.Client.RemoteEndPoint} not registered for event: {eventName}");
         }
+        else
+            log.Warn($"Event: {eventName} not found in the dictionary");
     }
 
     public void NotifySubscribers(EventName eventName, CacheEventArgs args)
