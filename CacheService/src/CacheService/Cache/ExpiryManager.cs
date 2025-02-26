@@ -34,15 +34,19 @@ public sealed class ExpiryManager
         _monitoringIntervalInSecs = expiryInterval;
         _expiryOffset = expiryInterval / 2; // ±3 sec if expiryInterval = 6 sec
 
+        _cacheManagerCore.CreateEvent += (sender, args) => AddItem((CacheItem)((CacheEventArgs)args).Item);
+        _cacheManagerCore.UpdateEvent += (sender, args) => UpdateItem(args);
+        _cacheManagerCore.DeleteEvent += (sender, args) => RemoveItem((CacheItem)((CacheEventArgs)args).Item);
+
         StartExpiryThread();
     }
 
     /// <summary>
     /// Adds a cache item to the expiration dictionary, grouping TTLs into time buckets.
     /// </summary>
-    public void Add(CacheItem item)
+    public void AddItem(CacheItem item)
     {
-        long roundedTTL = GetRoundedTTL(item.TTL); // Getting the nearest expiry bucket so that near expiry items can be removed together
+        long roundedTTL = GetRoundedTTL(item.TTL); // Getting the nearest expiry bucket so that we can group items by their rounded TTL
 
         lock (_lock)
         {
@@ -55,6 +59,16 @@ public sealed class ExpiryManager
             // Add to an existing expiry bucket
             set.Add(item); // HashSet prevents duplicate entries automatically
         }
+    }
+
+    public void UpdateItem(CacheItem oldItem, CacheItem item){
+        
+    }
+
+    public void UpdateItem(CacheItem item)
+    {
+        RemoveItem(item);
+        AddItem(item);
     }
 
 
@@ -113,7 +127,7 @@ public sealed class ExpiryManager
     {
         long currentTime = GetCurrentTimestamp();
         long upperBound = currentTime + _expiryOffset;
-        
+
         List<long> keysToRemoveFromExpiryMap = new(); // Track keys of empty TTL buckets in _expiryMap
         List<string> keysToRemoveFromCache = new();
         log.Debug($"ExpiryManager: Checking for expired items at {currentTime}");
@@ -143,7 +157,7 @@ public sealed class ExpiryManager
             lock (_lock)
             {
                 itemSet = _expiryMap[ttl]; // the hashset against the rounded TTL bucket
-                                               // if(ttl > upperBount) break; // No need to check ttl again, since we are already iterating over keys less than upperBound
+                                           // if(ttl > upperBount) break; // No need to check ttl again, since we are already iterating over keys less than upperBound
             }
             // Remove from cache and expiry map
             foreach (var expiredItem in itemSet.ToList())
@@ -165,7 +179,7 @@ public sealed class ExpiryManager
                 // Need to check null again, since key might contain a value now, since lock was released after getting the keys
                 //if(_expiryMap.ContainsKey(key) && _expiryMap[key].Count == 0)
                 // No need to check for empty TTL bucket, because a new entry cannot be added to an old TTL bucket
-                    _expiryMap.Remove(key); 
+                _expiryMap.Remove(key);
             }
         }
 

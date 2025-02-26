@@ -9,7 +9,7 @@ using Microsoft.Extensions.Options;
 using log4net;
 
 /// <summary>
-/// Evicts based on LFU (Least Frequently Used) policy.
+/// Evicts based on LFU (Least Frequent Used) policy.
 /// Keeps track of usage counts for each key and evicts the least used key when OnEvictionNeeded is raised.
 /// </summary>
 public class EvictionManager
@@ -37,12 +37,6 @@ public class EvictionManager
 
     private void IncrementFrequencyList(int frequency)
     {
-        // Use Interlocked to update smallestFrequency
-        Interlocked.Exchange(ref smallestFrequency, Math.Min(Interlocked.CompareExchange(ref smallestFrequency, frequency, smallestFrequency), frequency));
-
-        // Use Interlocked to update highestFrequency
-        Interlocked.Exchange(ref highestFrequency, Math.Max(Interlocked.CompareExchange(ref highestFrequency, frequency, highestFrequency), frequency));
-
         lock (_frequencyCountLock)
         {
             if (_frequencyListMapCount.ContainsKey(frequency))
@@ -54,15 +48,14 @@ public class EvictionManager
                 _frequencyListMapCount.Add(frequency, 1);
             }
         }
-    }
-    private void DecrementFrequencyList(int frequency)
-    {
         // Use Interlocked to update smallestFrequency
         Interlocked.Exchange(ref smallestFrequency, Math.Min(Interlocked.CompareExchange(ref smallestFrequency, frequency, smallestFrequency), frequency));
 
         // Use Interlocked to update highestFrequency
-        Interlocked.Exchange(ref highestFrequency, Math.Max(Interlocked.CompareExchange(ref highestFrequency, frequency, highestFrequency), frequency));
-
+        Interlocked.Exchange(ref highestFrequency, Math.Max(Interlocked.CompareExchange(ref highestFrequency, frequency, highestFrequency), frequency));        
+    }
+    private void DecrementFrequencyList(int frequency)
+    {
         lock (_frequencyCountLock)
         {
             if (_frequencyListMapCount.ContainsKey(frequency))
@@ -74,18 +67,24 @@ public class EvictionManager
                 }
             }
         }
+        
+        // Use Interlocked to update smallestFrequency
+        Interlocked.Exchange(ref smallestFrequency, Math.Min(Interlocked.CompareExchange(ref smallestFrequency, frequency, smallestFrequency), frequency));
+
+        // Use Interlocked to update highestFrequency
+        Interlocked.Exchange(ref highestFrequency, Math.Max(Interlocked.CompareExchange(ref highestFrequency, frequency, highestFrequency), frequency));
     }
 
 
     /// <summary>
     /// The smallest frequency in the <see cref="_usageFrequency"/> 
     /// </summary>
-    private int smallestFrequency;
+    private int smallestFrequency = int.MaxValue;
 
     /// <summary>
     /// The highest frequency in the <see cref="_usageFrequency"/>
     /// </summary>
-    private int highestFrequency;
+    private int highestFrequency = int.MinValue;
 
     /// <summary>
     /// Total number of items in <see cref="_usageFequency"/>
@@ -119,6 +118,8 @@ public class EvictionManager
         CacheItem item = ((CacheEventArgs)args).Item;
         int currentUsageCount = item.UsageCount;
         Dictionary<string, CacheItem> items;
+        bool incrementedSuccessfully = false;
+        bool oldFrequencyExists = false;
         lock (_lock)
         {
             if (_usageFequency.ContainsKey(currentUsageCount))
@@ -126,6 +127,7 @@ public class EvictionManager
                 items = _usageFequency[currentUsageCount];
                 // Removing item from old frequency
                 items.Remove(item.Key);
+                oldFrequencyExists = true;
             }
             item.UsageCount++;
             // Check if the new frequency exists in the _usageFrequency
@@ -138,6 +140,15 @@ public class EvictionManager
                 // Creating a new frequency adding the item, with its key as the key
                 _usageFequency.Add(item.UsageCount, new() { { item.Key, item } });
             }
+            incrementedSuccessfully = true;
+        }
+        if(incrementedSuccessfully)
+        {
+            IncrementFrequencyList(item.UsageCount);
+        }
+        if(oldFrequencyExists)
+        {
+            DecrementFrequencyList(currentUsageCount);
         }
     }
 
@@ -179,15 +190,20 @@ public class EvictionManager
             while (evictedItems < itemsToEvict)
             {
                 //Get the first item from the _sortedUsageList
+                if (_frequencyListMapCount.ContainsKey(smallestFrequency) == false)
+                {
+                    log.Debug($"EvictionManager: No items to evict, smallestFrequency: {smallestFrequency}");
+                    break;
+                }
                 _usageFrequencyToEvict = _frequencyListMapCount[smallestFrequency];
                 items = _usageFequency[_usageFrequencyToEvict];
 
                 // Looping inside the Dictionary to remove items
-                foreach (var item in items)
+                foreach (var item in items.ToList())
                 {
                     if (evictedItems >= itemsToEvict)
                     {
-                        continue;
+                        break;
                     }
                     keysToRemoveFromCache.Add(item.Value.Key);
 

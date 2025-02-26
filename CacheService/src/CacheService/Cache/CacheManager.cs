@@ -15,17 +15,15 @@ public class CacheManager
     public event EventHandler<CacheEventArgs> CreateEvent;
     public event EventHandler<CacheEventArgs> UpdateEvent;
     public event EventHandler<CacheEventArgs> DeleteEvent;
-    public event EventHandler<CacheEventArgs> FlushAllEvent;
-    public event EventHandler<CacheEventArgs> EvictionNeeded;
+    public event EventHandler FlushAllEvent;
 
     public CacheManager(MemoryManager memoryManager, CacheManagerCore cacheManagerCore)
     {
         _cacheManagerCore = cacheManagerCore;
-        _cacheManagerCore.CreateEvent += (s, e) => CreateEvent?.Invoke(s, e);
+        _cacheManagerCore.CreateEvent += (sender, args) => HandleCreateEvent(((CacheCoreEventArgs)args).Item);
         _cacheManagerCore.UpdateEvent += (s, e) => UpdateEvent?.Invoke(s, e);
         _cacheManagerCore.DeleteEvent += (s, e) => DeleteEvent?.Invoke(s, e);
         _cacheManagerCore.FlushAllEvent += (s, e) => FlushAllEvent?.Invoke(s, e);
-        _cacheManagerCore.EvictionNeeded += (s, e) => EvictionNeeded?.Invoke(s, e);
     }
 
     public double GetCurrentMemoryUsageInMB() => _cacheManagerCore.GetCurrentMemoryUsageInMB();
@@ -87,5 +85,54 @@ public class CacheManager
     public void Clear()
     {
         _cacheManagerCore.Clear();
+    }
+
+    protected virtual void HandleCreateEvent(CacheItem item)
+    {
+        object value = item.Value;
+        if(value == null)
+        {
+            value = string.Empty;
+            //log.Error($"Cache item value is null for key: {item.Key}");
+            //return;
+        }
+        CreateEvent?.Invoke(this, new CacheEventArgs(item.Key, value.ToString()));
+    }
+
+    protected virtual void OnUpdateEvent(CacheItem oldItem, CacheItem newItem)
+    {
+        object oldValue = oldItem.Value;
+        if(oldValue == null)
+        {
+            oldValue = string.Empty;
+            //log.Error($"Cache item value is null for key: {oldItem.Key}");
+            //return;
+        }
+        object newValue = newItem.Value;
+        if(newValue == null)
+        {
+            newValue = string.Empty;
+            //log.Error($"Cache item value is null for key: {newItem.Key}");
+            //return;
+        }
+        UpdateEvent?.Invoke(this, new CacheEventArgs(oldItem.Key, oldValue?.ToString() ?? string.Empty, newValue?.ToString() ?? string.Empty));
+    }
+
+
+    protected virtual void OnDeleteEvent(CacheItem cacheItem)
+    {
+        object value = cacheItem.Value;
+        if (value == null)
+        {
+            value = string.Empty;
+            //log.Error($"Cache item value is null for key: {cacheItem.Key}");
+            //return;
+        }
+        DeleteEvent?.Invoke(this, new CacheEventArgs(cacheItem.Key, value.ToString()));
+    }
+
+    protected virtual void OnFlushAllEvent()
+    {
+        FlushAllEvent?.Invoke(this, new EventArgs());
     }
 }

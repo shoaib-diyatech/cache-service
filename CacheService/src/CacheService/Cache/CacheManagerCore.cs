@@ -1,6 +1,7 @@
 namespace App.WindowsService;
 
 using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using log4net;
 
 /// <summary>
@@ -14,22 +15,20 @@ public class CacheManagerCore
     private static readonly ILog log = LogManager.GetLogger(typeof(CacheManager));
     private readonly MemoryManager _memoryManager;
 
-    public event EventHandler<CacheEventArgs> CreateEvent;
-    public event EventHandler<CacheEventArgs> UpdateEvent;
-    public event EventHandler<CacheEventArgs> DeleteEvent;
-    public event EventHandler<CacheEventArgs> FlushAllEvent;
-    public event EventHandler<CacheEventArgs> EvictionNeeded;
+    public event EventHandler<CacheCoreEventArgs> CreateEvent;
+    public event EventHandler<CacheCoreEventArgs> UpdateEvent;
+    public event EventHandler<CacheCoreEventArgs> DeleteEvent;
+    public event EventHandler<CacheCoreEventArgs> ReadEvent;
+    public event EventHandler FlushAllEvent;
+    public event EventHandler EvictionNeeded;
 
-    public event EventHandler<CacheEventArgs> ReadEvent;
 
     private readonly CacheSettings _cacheSettings;
-
-    private readonly float EvictionThreshold;
 
     public CacheManagerCore(CacheSettings cacheSettings, MemoryManager memoryManager)
     {
         _cacheSettings = cacheSettings;
-        EvictionThreshold = _cacheSettings.EvictionThreshold;
+        //EvictionThreshold = _cacheSettings.EvictionThreshold;
         _cache = new();
         _memoryManager = memoryManager;
     }
@@ -40,11 +39,16 @@ public class CacheManagerCore
     {
         long size = _memoryManager.GetSizeInBytes(item.Key, item.Value.ToString());
 
-        if (!_memoryManager.CanAdd(size))
+        // if (_memoryManager.CanAdd(size))
+        // {
+        //     log.Error($"Memory limit reached, cannot add more items to the cache, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
+        //     OnEvictionNeeded();
+        //     return false;
+        // }
+        if (_memoryManager.EvictionNeeded())
         {
-            log.Error($"Memory limit reached, cannot add more items to the cache, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
+            log.Warn($"Memory limit reached, Eviction needed, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
             OnEvictionNeeded();
-            return false;
         }
 
         bool isInsertedSuccessfully = false;
@@ -65,7 +69,8 @@ public class CacheManagerCore
         if (isInsertedSuccessfully)
         {
             _memoryManager.Add(size);
-            OnCreateEvent(item.Key, item.Value.ToString());
+            //OnCreateEvent(item.Key, item.Value.ToString());
+            OnCreateEvent(item);
             log.Debug($"Added key: {item.Key}, Value: {item.Value}, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
             return true;
         }
@@ -82,7 +87,7 @@ public class CacheManagerCore
         }
         if (isReadSuccessfully)
         {
-            OnReadEvent(key);
+            OnReadEvent(item);
         }
         return isReadSuccessfully ? item.Value : null;
     }
@@ -91,11 +96,12 @@ public class CacheManagerCore
     {
         bool isUpdatedSuccessfully = false;
         string oldValue = "";
+        CacheItem oldItem = null;
         long oldSize = 0;
         long newSize = 0;
         lock (_lock)
         {
-            if (!_cache.TryGetValue(item.Key, out CacheItem oldItem))
+            if (!_cache.TryGetValue(item.Key, out oldItem))
             {
                 log.Error($"Key: {item.Key} does not exist in the cache, cannot update");
                 throw new ArgumentException($"Key: {item.Key} does not exist in the cache, cannot update");
@@ -116,7 +122,8 @@ public class CacheManagerCore
 
         if (isUpdatedSuccessfully)
         {
-            OnUpdateEvent(item.Key, oldValue, item.Value.ToString());
+            //OnUpdateEvent(item.Key, oldValue, item.Value.ToString());
+            OnUpdateEvent(oldItem, item);
             _memoryManager.Update(oldSize, newSize);
             return true;
         }
@@ -131,22 +138,24 @@ public class CacheManagerCore
     public void Delete(string key)
     {
         string removedValue = "";
+        CacheItem removedItem = null;
         long size = 0;
         lock (_lock)
         {
-            if (_cache.TryGetValue(key, out CacheItem item) == false)
+            if (_cache.TryGetValue(key, out removedItem) == false)
             {
                 log.Warn($"Cannot Remove, key: {key} doesn't exist");
                 return;
             }
             else
             {
-                removedValue = item.Value.ToString();
+                removedValue = removedItem.Value.ToString();
                 _cache.Remove(key);
             }
         }
 
-        OnDeleteEvent(key, removedValue);
+        //OnDeleteEvent(key, removedValue);
+        OnDeleteEvent(removedItem);
         size = _memoryManager.GetSizeInBytes(key, removedValue);
         _memoryManager.Remove(size);
         return;
@@ -171,33 +180,35 @@ public class CacheManagerCore
         }
     }
 
-    protected virtual void OnCreateEvent(string key, string value)
+    protected virtual void OnCreateEvent(CacheItem item)
     {
-        CreateEvent?.Invoke(this, new CacheEventArgs(key, value));
+        CreateEvent?.Invoke(this, new CacheCoreEventArgs(item));
     }
 
-    protected virtual void OnUpdateEvent(string key, string oldValue, string newValue)
+    protected virtual void OnUpdateEvent(CacheItem oldItem, CacheItem newItem)
     {
-        UpdateEvent?.Invoke(this, new CacheEventArgs(key, oldValue, newValue));
+        UpdateEvent?.Invoke(this, new CacheCoreEventArgs(oldItem, newItem));
     }
 
-    protected virtual void OnDeleteEvent(string key, string value)
+    protected virtual void OnDeleteEvent(CacheItem cacheItem)
     {
-        DeleteEvent?.Invoke(this, new CacheEventArgs(key, value));
+        DeleteEvent?.Invoke(this, new CacheCoreEventArgs(cacheItem));
+    }
+
+    protected virtual void OnReadEvent(CacheItem item)
+    {
+        ReadEvent?.Invoke(this, new CacheCoreEventArgs(item));
     }
 
     protected virtual void OnFlushAllEvent()
     {
-        FlushAllEvent?.Invoke(this, new CacheEventArgs(string.Empty, string.Empty));
+        FlushAllEvent?.Invoke(this, new EventArgs());
     }
 
     protected virtual void OnEvictionNeeded()
     {
-        EvictionNeeded?.Invoke(this, new CacheEventArgs(string.Empty, string.Empty));
+        EvictionNeeded?.Invoke(this, new EventArgs());
     }
 
-    protected virtual void OnReadEvent(string key)
-    {
-        ReadEvent?.Invoke(this, new CacheEventArgs(key, string.Empty));
-    }
+
 }
