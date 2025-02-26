@@ -46,17 +46,19 @@ public sealed class ReqEventHandler : MessageHandler
 
             try
             {
-                Response response = _commandExecutor.Execute(request.RequestId, request.Command);
-                _responseQueue.Add((client, response));
+                //Response response = _commandExecutor.Execute(request.RequestId, request.Command);
+                //_responseQueue.Add((client, response));
                 if (request.Command is SubCommand)
                 {
                     SubCommand subCommand = (SubCommand)request.Command;
-                    RegisterClient(client, subCommand.EventType);
+                    String response = RegisterClient(client, subCommand.EventType);
+                    _responseQueue.Add((client, new Response { RequestId = request.RequestId, Code = Code.Success, Message = response }));
                 }
                 else if (request.Command is UnsubCommand)
                 {
                     UnsubCommand unsubCommand = (UnsubCommand)request.Command;
-                    UnregisterClient(client, unsubCommand.EventType);
+                    string response = UnregisterClient(client, unsubCommand.EventType);
+                    _responseQueue.Add((client, new Response { RequestId = request.RequestId, Code = Code.Success, Message = response }));
                 }
             }
             catch (Exception ex)
@@ -70,8 +72,9 @@ public sealed class ReqEventHandler : MessageHandler
         }
     }
 
-    public void RegisterClient(TcpClient client, EventName eventName)
+    public string RegisterClient(TcpClient client, EventName eventName)
     {
+        string response = string.Empty;
         log.Debug($"Registering client: {client.Client.RemoteEndPoint} for event: {eventName}");
         // Check if the event exists in the dictionary
         if (!_eventSubscribers.ContainsKey(eventName))
@@ -82,32 +85,46 @@ public sealed class ReqEventHandler : MessageHandler
         if (_eventSubscribers[eventName].Contains(client))
         {
             log.Warn($"Client: {client.Client.RemoteEndPoint} already registered for event: {eventName}");
-            return;
+            response = $"Already registered for event: {eventName}";
+            return response;
         }
         else
         {
             // Add the client to the list of subscribers for the event
             _eventSubscribers[eventName].Add(client);
             log.Info($"Client: {client.Client.RemoteEndPoint} subscribed to event: {eventName}");
+            response = $"Subscribed to event: {eventName}";
+            return response;
         }
 
     }
 
-    public void UnregisterClient(TcpClient client, EventName eventName)
+    public string UnregisterClient(TcpClient client, EventName eventName)
     {
         log.Debug($"Unregistering client: {client.Client.RemoteEndPoint} for event: {eventName}");
+        string response = string.Empty;
         if (_eventSubscribers.ContainsKey(eventName))
         {
             if (_eventSubscribers[eventName].Contains(client))
             {
                 _eventSubscribers[eventName].Remove(client);
                 log.Info($"Client: {client.Client.RemoteEndPoint} unsubscribed from event: {eventName}");
+                response = $"Unsubscribed from event: {eventName}";
+                return response;
             }
             else
+            {
                 log.Warn($"Client: {client.Client.RemoteEndPoint} not registered for event: {eventName}");
+                response = $"Not registered for event: {eventName}";
+                return response;
+            }
         }
         else
+        {
             log.Warn($"Event: {eventName} not found in the dictionary");
+            response = $"Event: {eventName} not found";
+            return response;
+        }
     }
 
     public void NotifySubscribers(EventName eventName, CacheEventArgs args)
