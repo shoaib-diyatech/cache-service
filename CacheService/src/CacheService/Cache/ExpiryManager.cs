@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using log4net;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Manages the expiration of cache items based on their TTL.
@@ -18,6 +19,7 @@ public sealed class ExpiryManager
     private static readonly ILog log = LogManager.GetLogger(typeof(ExpiryManager));
     //private readonly ConcurrentDictionary<string, CacheItem> _cache; // Reference to main cache
 
+    private readonly CacheSettings _cacheSettings;
     private readonly CacheManagerCore _cacheManagerCore;
     private readonly SortedDictionary<long, HashSet<CacheItem>> _expiryMap;
     private readonly object _lock = new object();
@@ -25,13 +27,16 @@ public sealed class ExpiryManager
     private readonly int _expiryOffset;   // Offset window in seconds
     private bool _isRunning = true;
 
-    public ExpiryManager(CacheManagerCore cacheManagerCore, int expiryInterval = 6)
+    private bool _strictExpiry = false;
+
+    public ExpiryManager(IOptions<CacheSettings> cacheSettings, CacheManagerCore cacheManagerCore, int expiryInterval = 6)
     {
         //_cache = cache;
         _cacheManagerCore = cacheManagerCore;
         _expiryMap = new SortedDictionary<long, HashSet<CacheItem>>();
 
         _monitoringIntervalInSecs = expiryInterval;
+        _strictExpiry = cacheSettings.Value.StrictExpiry;
         _expiryOffset = expiryInterval / 2; // ±3 sec if expiryInterval = 6 sec
 
         _cacheManagerCore.CreateEvent += (sender, args) => AddItem((CacheItem)args.Item);
@@ -65,7 +70,7 @@ public sealed class ExpiryManager
     {
         CacheItem oldItem = args.OldItem;
         CacheItem newItem = args.Item;
-        if(oldItem.TTL == newItem.TTL)
+        if (oldItem.TTL == newItem.TTL)
         {
             log.Debug($"ExpiryManager: UpdateItem: TTL not changed for {newItem.Key}, old TTL: {oldItem.TTL}, new TTL: {newItem.TTL}");
             return;
@@ -73,7 +78,7 @@ public sealed class ExpiryManager
         log.Debug($"ExpiryManager: UpdateItem: TTL changed for {newItem.Key}, old TTL: {oldItem.TTL}, new TTL: {newItem.TTL}");
         RemoveItem(args.Item);
         AddItem(args.Item);
-        
+
     }
 
     /// <summary>
@@ -138,6 +143,8 @@ public sealed class ExpiryManager
 
         List<long> keysInExpiryMapLessThanUpperBound = new List<long>();
 
+        List<CacheItem> expiredItems = new List<CacheItem>();
+
         // Copy keys that are less than upperBound to a separate list to minimize lock contention
         lock (_lock)
         {
@@ -167,10 +174,12 @@ public sealed class ExpiryManager
             foreach (var expiredItem in itemSet.ToList())
             {
                 //_cacheManagerCore.Delete(expiredItem.Key); // Not removing from main cache here, since we are inside a lock, can cause deadlock
+                expiredItem.IsExpired = true;   // Will only be used if strict expiry is false, otherwise it will be expired based on ttl
                 itemSet.Remove(expiredItem);
+                expiredItems.Add(expiredItem);
                 keysToRemoveFromCache.Add(expiredItem.Key); // These are they keys which we have to remove from the main cache, cannot remove inside lock
             }
-
+            // Need to lock here as well?
             if (itemSet.Count == 0)
                 keysToRemoveFromExpiryMap.Add(ttl); // These are empty TTL buckets
         }
@@ -188,11 +197,25 @@ public sealed class ExpiryManager
         }
 
         // Removing items from main cache outside lock to prevent deadlocks
-        foreach (var key in keysToRemoveFromCache)
+        if (_strictExpiry)
         {
-            _cacheManagerCore.Delete(key);
+            foreach (var key in keysToRemoveFromCache)
+            {
+
+                _cacheManagerCore.Delete(key);
+
+            }
+        }
+        else
+        {
+            foreach (var item in expiredItems)
+            {
+                _cacheManagerCore.Update(item);
+            }
         }
     }
+}
+    
 
 
     /// <summary>

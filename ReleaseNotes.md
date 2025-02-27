@@ -10,6 +10,9 @@
 
 ## CacheService
 
+### Version 1.3.0
+- Added Eviction logic
+
 ### Version 1.2.0
 - Added CacheCommon reference
 

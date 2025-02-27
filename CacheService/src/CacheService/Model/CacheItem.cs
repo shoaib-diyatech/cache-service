@@ -5,6 +5,8 @@ public class CacheItem
     public object Value { get; set; }
     public long TTL { get; set; }
 
+    public bool IsExpired{ get; set; }
+
     /// <summary>
     /// Usage count of the cache item.
     /// </summary>

@@ -89,7 +89,7 @@ public class CacheManagerCore
         return isReadSuccessfully ? item.Value : null;
     }
 
-    public bool Update(CacheItem item)
+    public bool UpdateWholeLock(CacheItem item)
     {
         bool isUpdatedSuccessfully = false;
         string oldValue = "";
@@ -132,6 +132,62 @@ public class CacheManagerCore
         return false;
     }
 
+
+    /// <summary>
+    /// Updates the value of the cache item, if the key does not exist, throws an exception.
+    /// </summary>
+    /// <param name="item"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    public bool Update(CacheItem item)
+    {
+        bool isUpdatedSuccessfully = false;
+        string oldValue = "";
+        CacheItem oldItem = null;
+        long oldSize = 0;
+        long newSize = 0;
+
+        // lock on the cache to check if the item exists
+        lock (_lock)
+        {
+            if (!_cache.TryGetValue(item.Key, out oldItem))
+            {
+                log.Error($"Key: {item.Key} does not exist in the cache, cannot update");
+                throw new ArgumentException($"Key: {item.Key} does not exist in the cache, cannot update");
+            }
+        }
+
+        // Lock on the oldItem to perform the update
+        // Acquiring the lock on the specific CacheItem is safe, since no other method modifies the existing CacheItem object
+        lock (oldItem)
+        {
+            oldValue = oldItem.Value.ToString();
+            oldSize = _memoryManager.GetSizeInBytes(item.Key, oldValue);
+            newSize = _memoryManager.GetSizeInBytes(item.Key, item.Value.ToString());
+
+            if (!_memoryManager.CanUpdate(oldSize, newSize))
+            {
+                return false;
+            }
+            oldItem.Value = item.Value;
+            oldItem.TTL = item.TTL;
+            oldItem.IsExpired = item.IsExpired;
+
+            isUpdatedSuccessfully = true;
+        }
+
+        if (isUpdatedSuccessfully)
+        {
+            OnUpdateEvent(oldItem, item);
+            _memoryManager.Update(oldSize, newSize);
+            return true;
+        }
+        else
+        {
+            log.Error($"Key: {item.Key} does not exist in the cache, cannot update");
+            throw new ArgumentException($"Key: {item.Key} does not exist in the cache, cannot update");
+        }
+    }
     public void Delete(string key)
     {
         string removedValue = "";

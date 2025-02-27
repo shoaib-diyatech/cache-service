@@ -14,6 +14,9 @@ public class MemoryManager
     private long _currentMemoryUsageInBytes = 0; // Atomic tracking
     private readonly long _maxMemoryUsageInBytes; // Max memory in bytes
 
+    /// <summary>
+    /// 
+    /// </summary>
     private readonly float EvictionThreshold;
 
     public MemoryManager(IOptions<CacheSettings> cacheSettings)

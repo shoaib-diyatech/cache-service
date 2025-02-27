@@ -14,4 +14,10 @@ public class CacheSettings
     /// </summary>
     public float EvictionThreshold { get; set; }
 
+    /// <summary>
+    /// If true, the cache will strictly adhere to the TTL of the cache items.
+    /// If false, items will be removed when read after their TTL.
+    /// </summary>
+    public bool StrictExpiry { get; set; }
+
 }
