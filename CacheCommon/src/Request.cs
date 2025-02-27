@@ -10,7 +10,12 @@ public class Request
     public ICommand Command { get; set; }
     public string[] Args { get; set; }
 
-    private Request() { }
+    private Request() { 
+        RequestId = "0";
+        Command = new UnknownCommand();
+        Args = new string[] { "" };
+        RequestString = "";
+    }
 
     public static Request Create()
     {

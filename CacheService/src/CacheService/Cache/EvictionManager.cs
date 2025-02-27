@@ -35,47 +35,6 @@ public class EvictionManager
 
     private readonly CacheSettings _cacheSettings;
 
-    private void IncrementFrequencyList(int frequency)
-    {
-        lock (_frequencyCountLock)
-        {
-            if (_frequencyListMapCount.ContainsKey(frequency))
-            {
-                _frequencyListMapCount[frequency]++;
-            }
-            else
-            {
-                _frequencyListMapCount.Add(frequency, 1);
-            }
-        }
-        // Use Interlocked to update smallestFrequency
-        Interlocked.Exchange(ref smallestFrequency, Math.Min(Interlocked.CompareExchange(ref smallestFrequency, frequency, smallestFrequency), frequency));
-
-        // Use Interlocked to update highestFrequency
-        Interlocked.Exchange(ref highestFrequency, Math.Max(Interlocked.CompareExchange(ref highestFrequency, frequency, highestFrequency), frequency));        
-    }
-    private void DecrementFrequencyList(int frequency)
-    {
-        lock (_frequencyCountLock)
-        {
-            if (_frequencyListMapCount.ContainsKey(frequency))
-            {
-                _frequencyListMapCount[frequency]--;
-                if (_frequencyListMapCount[frequency] == 0)
-                {
-                    _frequencyListMapCount.Remove(frequency);
-                }
-            }
-        }
-        
-        // Use Interlocked to update smallestFrequency
-        Interlocked.Exchange(ref smallestFrequency, Math.Min(Interlocked.CompareExchange(ref smallestFrequency, frequency, smallestFrequency), frequency));
-
-        // Use Interlocked to update highestFrequency
-        Interlocked.Exchange(ref highestFrequency, Math.Max(Interlocked.CompareExchange(ref highestFrequency, frequency, highestFrequency), frequency));
-    }
-
-
     /// <summary>
     /// The smallest frequency in the <see cref="_usageFrequency"/> 
     /// </summary>
@@ -106,6 +65,47 @@ public class EvictionManager
         _cacheManagerCore.ReadEvent += (sender, args) => IncrementUsage(args);
         _cacheManagerCore.DeleteEvent += (sender, args) => RemoveItem(args);
     }
+
+    private void IncrementFrequencyList(int frequency)
+    {
+        lock (_frequencyCountLock)
+        {
+            if (_frequencyListMapCount.ContainsKey(frequency))
+            {
+                _frequencyListMapCount[frequency]++;
+            }
+            else
+            {
+                _frequencyListMapCount.Add(frequency, 1);
+            }
+        }
+        // If smallestFrequency is greater than frequency, then updating it to frequency
+        Interlocked.Exchange(ref smallestFrequency, Math.Min(Interlocked.CompareExchange(ref smallestFrequency, frequency, smallestFrequency), frequency));
+
+        // If highestFrequency is less than frequency, then updating it to frequency
+        Interlocked.Exchange(ref highestFrequency, Math.Max(Interlocked.CompareExchange(ref highestFrequency, frequency, highestFrequency), frequency));        
+    }
+    private void DecrementFrequencyList(int frequency)
+    {
+        lock (_frequencyCountLock)
+        {
+            if (_frequencyListMapCount.ContainsKey(frequency))
+            {
+                _frequencyListMapCount[frequency]--;
+                if (_frequencyListMapCount[frequency] == 0)
+                {
+                    _frequencyListMapCount.Remove(frequency);
+                }
+            }
+        }
+
+        // If smallestFrequency is greater than frequency, then updating it to frequency
+        Interlocked.Exchange(ref smallestFrequency, Math.Min(Interlocked.CompareExchange(ref smallestFrequency, frequency, smallestFrequency), frequency));
+
+        // If highestFrequency is less than frequency, then updating it to frequency
+        Interlocked.Exchange(ref highestFrequency, Math.Max(Interlocked.CompareExchange(ref highestFrequency, frequency, highestFrequency), frequency));
+    }
+
 
     private void AddItem(EventArgs item)
     {
@@ -223,6 +223,7 @@ public class EvictionManager
         log.Debug($"EvictionManager: Evicting {evictedItems} items from the cache");
         foreach (var key in keysToRemoveFromCache)
         {
+            // Todo: Can implement soft delete here as well, like in ExpiryManager
             _cacheManagerCore.Delete(key);
         }
         log.Info($"EvictionManager: Evicted {evictedItems} items from the cache");

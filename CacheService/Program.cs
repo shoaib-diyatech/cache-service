@@ -45,6 +45,10 @@ builder.Services.AddSingleton<CacheManagerCore>();
 // Registering MemoryManager for DI via container, being Injected in CacheManager
 builder.Services.AddSingleton<MemoryManager>();
 
+builder.Services.AddSingleton<EvictionManager>();
+
+builder.Services.AddSingleton<ExpiryManager>();
+
 // Registering RequestHandler for DI via container
 builder.Services.AddTransient<RequestHandler>();
 
@@ -63,4 +67,8 @@ builder.Services.AddHostedService<WindowsBackgroundService>();
 LoggerProviderOptions.RegisterProviderOptions<EventLogSettings, EventLogLoggerProvider>(builder.Services);
 
 IHost host = builder.Build();
+
+host.Services.GetRequiredService<EvictionManager>();
+host.Services.GetRequiredService<ExpiryManager>();
+
 host.Run();

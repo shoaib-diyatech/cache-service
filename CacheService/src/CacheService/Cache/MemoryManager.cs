@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 public class MemoryManager
 {
     private static readonly ILog log = LogManager.GetLogger(typeof(MemoryManager));
-    private long _currentMemoryUsageInBytes = 0; // Atomic tracking
+    private long _currentMemoryUsageInBytes = 0; // Current memory usage in bytes
     private readonly long _maxMemoryUsageInBytes; // Max memory in bytes
 
     /// <summary>

@@ -76,6 +76,7 @@ public sealed class ExpiryManager
             return;
         }
         log.Debug($"ExpiryManager: UpdateItem: TTL changed for {newItem.Key}, old TTL: {oldItem.TTL}, new TTL: {newItem.TTL}");
+        // Todo: Should add seperate logic for updating the expiry map?
         RemoveItem(args.Item);
         AddItem(args.Item);
 
@@ -137,8 +138,11 @@ public sealed class ExpiryManager
         long currentTime = GetCurrentTimestamp();
         long upperBound = currentTime + _expiryOffset;
 
-        List<long> keysToRemoveFromExpiryMap = new(); // Track keys of empty TTL buckets in _expiryMap
-        List<string> keysToRemoveFromCache = new();
+        // Track keys of empty TTL buckets in _expiryMap
+        // Need to remove them since they are expired and empty
+        // No new insertions can and will be made in these buckets
+        List<long> emptyBucketKeysToRemoveFromExpiryMap = new(); 
+        List<string> keysToRemoveFromMainCache = new();
         log.Debug($"ExpiryManager: Checking for expired items at {currentTime}");
 
         List<long> keysInExpiryMapLessThanUpperBound = new List<long>();
@@ -156,7 +160,7 @@ public sealed class ExpiryManager
                 }
                 else
                 {
-                    break;  // Stop if TTL is beyond offset range, No need to iterate through all the keys, we have got what we need
+                    break;  // Stop if TTL is beyond offset range, No need to iterate through all the keys
                 }
             }
         }
@@ -177,33 +181,19 @@ public sealed class ExpiryManager
                 expiredItem.IsExpired = true;   // Will only be used if strict expiry is false, otherwise it will be expired based on ttl
                 itemSet.Remove(expiredItem);
                 expiredItems.Add(expiredItem);
-                keysToRemoveFromCache.Add(expiredItem.Key); // These are they keys which we have to remove from the main cache, cannot remove inside lock
+                keysToRemoveFromMainCache.Add(expiredItem.Key); // These are they keys which we have to remove from the main cache, cannot remove inside lock
             }
             // Need to lock here as well?
             if (itemSet.Count == 0)
-                keysToRemoveFromExpiryMap.Add(ttl); // These are empty TTL buckets
-        }
-
-        lock (_lock)
-        {
-            // Clean up empty TTL buckets
-            foreach (var key in keysToRemoveFromExpiryMap)
-            {
-                // Need to check null again, since key might contain a value now, since lock was released after getting the keys
-                //if(_expiryMap.ContainsKey(key) && _expiryMap[key].Count == 0)
-                // No need to check for empty TTL bucket, because a new entry cannot be added to an old TTL bucket
-                _expiryMap.Remove(key);
-            }
+                emptyBucketKeysToRemoveFromExpiryMap.Add(ttl); // These are empty TTL buckets
         }
 
         // Removing items from main cache outside lock to prevent deadlocks
         if (_strictExpiry)
         {
-            foreach (var key in keysToRemoveFromCache)
+            foreach (var key in expiredItems)
             {
-
-                _cacheManagerCore.Delete(key);
-
+                _cacheManagerCore.Delete(key.Key);
             }
         }
         else
@@ -211,6 +201,18 @@ public sealed class ExpiryManager
             foreach (var item in expiredItems)
             {
                 _cacheManagerCore.Update(item);
+            }
+        }
+
+        lock (_lock)
+        {
+            // Clean up empty TTL buckets
+            foreach (var key in emptyBucketKeysToRemoveFromExpiryMap)
+            {
+                // Need to check null again, since key might contain a value now, since lock was released after getting the keys
+                //if(_expiryMap.ContainsKey(key) && _expiryMap[key].Count == 0)
+                // No need to check for empty TTL bucket, because a new entry cannot be added to an old TTL bucket
+                _expiryMap.Remove(key);
             }
         }
     }

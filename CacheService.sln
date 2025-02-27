@@ -1,11 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35818.85 d17.13
+VisualStudioVersion = 17.13.35818.85
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheService", "CacheService\CacheService.csproj", "{BEB3BFA1-7321-4349-A032-B0BB8822E48C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheCommon", "CacheCommon\CacheCommon.csproj", "{1061CD51-03F7-4D3E-853F-223A2D73865A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestApplication", "..\tcp-client\tcp-client\TestApplication.csproj", "{39B1706A-F1DB-52F4-065D-689A15338969}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CacheLibrary", "..\cache-lib\CacheLibrary.csproj", "{B51746F6-DD18-B58E-6897-66D958876B06}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +25,14 @@ Global
 		{1061CD51-03F7-4D3E-853F-223A2D73865A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1061CD51-03F7-4D3E-853F-223A2D73865A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1061CD51-03F7-4D3E-853F-223A2D73865A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39B1706A-F1DB-52F4-065D-689A15338969}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39B1706A-F1DB-52F4-065D-689A15338969}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39B1706A-F1DB-52F4-065D-689A15338969}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39B1706A-F1DB-52F4-065D-689A15338969}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B51746F6-DD18-B58E-6897-66D958876B06}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B51746F6-DD18-B58E-6897-66D958876B06}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B51746F6-DD18-B58E-6897-66D958876B06}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B51746F6-DD18-B58E-6897-66D958876B06}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

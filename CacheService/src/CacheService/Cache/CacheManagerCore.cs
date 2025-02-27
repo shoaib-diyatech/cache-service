@@ -3,6 +3,7 @@ namespace App.WindowsService;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using log4net;
+using Microsoft.Extensions.Options;
 
 /// <summary>
 /// Cache Manager class to manage the cache operations, Uses <see cref="ConcurrentDictionary"/> DataStructure for thread safety.
@@ -22,9 +23,11 @@ public class CacheManagerCore
     public event EventHandler FlushAllEvent;
     public event EventHandler EvictionNeeded;
 
-    public CacheManagerCore(MemoryManager memoryManager)
-    {
+    CacheSettings _cacheSettings;
 
+    public CacheManagerCore(IOptions<CacheSettings> cacheSettings, MemoryManager memoryManager)
+    {
+        _cacheSettings = cacheSettings.Value;
         //EvictionThreshold = _cacheSettings.EvictionThreshold;
         _cache = new();
         _memoryManager = memoryManager;
@@ -44,7 +47,7 @@ public class CacheManagerCore
         // }
         if (_memoryManager.EvictionNeeded())
         {
-            log.Warn($"Memory limit reached, Eviction needed, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
+            log.Warn($"CacheManagerCore: Memory threshold reached, Eviction needed, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
             OnEvictionNeeded();
         }
 
@@ -74,13 +77,37 @@ public class CacheManagerCore
         return false;
     }
 
+    /// <summary>
+    /// Reads the value of the cache item, if the key does not exist, returns null.
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
     public object Read(string key)
     {
         bool isReadSuccessfully = false;
         CacheItem item = null;
         lock (_lock)
         {
-            isReadSuccessfully = _cache.TryGetValue(key, out item) ? true : false;
+            if (_cacheSettings.StrictExpiry)
+            {
+                if (_cache.TryGetValue(key, out item) == false)
+                {
+                    log.Warn($"Key: {key} does not exist in the cache, cannot read");
+                    return null;
+                }
+                // if item exists in _cache but is expired, then remove it from the cache and return null
+                if (item.IsExpired)
+                {
+                    log.Warn($"Key: {key} is expired, cannot read");
+                    _cache.Remove(key);
+                    _memoryManager.Remove(_memoryManager.GetSizeInBytes(key, item.Value.ToString()));
+                    return null;
+                }
+            }
+            else // if StrictExpiry is false, then just return the item if it exists in the cache or return null if it doesn't
+            {
+                isReadSuccessfully = _cache.TryGetValue(key, out item) ? true : false;
+            }
         }
         if (isReadSuccessfully)
         {
