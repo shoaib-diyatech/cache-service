@@ -214,9 +214,6 @@ public sealed class ExpiryManager
             }
         }
     }
-}
-    
-
 
     /// <summary>
     /// Gets the current timestamp (Unix time in seconds).
