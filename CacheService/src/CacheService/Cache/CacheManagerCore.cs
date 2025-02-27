@@ -22,12 +22,9 @@ public class CacheManagerCore
     public event EventHandler FlushAllEvent;
     public event EventHandler EvictionNeeded;
 
-
-    private readonly CacheSettings _cacheSettings;
-
-    public CacheManagerCore(CacheSettings cacheSettings, MemoryManager memoryManager)
+    public CacheManagerCore(MemoryManager memoryManager)
     {
-        _cacheSettings = cacheSettings;
+
         //EvictionThreshold = _cacheSettings.EvictionThreshold;
         _cache = new();
         _memoryManager = memoryManager;
