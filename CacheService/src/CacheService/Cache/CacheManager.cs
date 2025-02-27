@@ -21,9 +21,9 @@ public class CacheManager
     {
         _cacheManagerCore = cacheManagerCore;
         _cacheManagerCore.CreateEvent += (sender, args) => HandleCreateEvent(((CacheCoreEventArgs)args).Item);
-        _cacheManagerCore.UpdateEvent += (s, e) => UpdateEvent?.Invoke(s, e);
-        _cacheManagerCore.DeleteEvent += (s, e) => DeleteEvent?.Invoke(s, e);
-        _cacheManagerCore.FlushAllEvent += (s, e) => FlushAllEvent?.Invoke(s, e);
+        _cacheManagerCore.UpdateEvent += (sender, args) => OnUpdateEvent(args);
+        _cacheManagerCore.DeleteEvent += (sender, args) => OnDeleteEvent(((CacheCoreEventArgs)args).Item);
+        _cacheManagerCore.FlushAllEvent += (sender, args) => OnFlushAllEvent();
     }
 
     public double GetCurrentMemoryUsageInMB() => _cacheManagerCore.GetCurrentMemoryUsageInMB();
@@ -90,7 +90,7 @@ public class CacheManager
     protected virtual void HandleCreateEvent(CacheItem item)
     {
         object value = item.Value;
-        if(value == null)
+        if (value == null)
         {
             value = string.Empty;
             //log.Error($"Cache item value is null for key: {item.Key}");
@@ -99,23 +99,31 @@ public class CacheManager
         CreateEvent?.Invoke(this, new CacheEventArgs(item.Key, value.ToString()));
     }
 
-    protected virtual void OnUpdateEvent(CacheItem oldItem, CacheItem newItem)
+    protected virtual void OnUpdateEvent(CacheCoreEventArgs args)
     {
-        object oldValue = oldItem.Value;
-        if(oldValue == null)
+        object oldValue = null;
+        string oldKey = string.Empty;
+        object newValue = null;
+        var cacheArgs = (CacheCoreEventArgs)args;
+        if (cacheArgs.OldItem == null)
         {
-            oldValue = string.Empty;
-            //log.Error($"Cache item value is null for key: {oldItem.Key}");
-            //return;
+            log.Error("OldItem is null in UpdateEvent");
         }
-        object newValue = newItem.Value;
-        if(newValue == null)
+        else
+        {
+            oldValue = cacheArgs.OldItem.Value;
+            oldKey = cacheArgs.OldItem.Key;
+            if (oldValue == null)
+            {
+                oldValue = string.Empty;
+            }
+        }
+        newValue = cacheArgs.Item.Value;
+        if (newValue == null)
         {
             newValue = string.Empty;
-            //log.Error($"Cache item value is null for key: {newItem.Key}");
-            //return;
         }
-        UpdateEvent?.Invoke(this, new CacheEventArgs(oldItem.Key, oldValue?.ToString() ?? string.Empty, newValue?.ToString() ?? string.Empty));
+        UpdateEvent?.Invoke(this, new CacheEventArgs(oldKey, oldValue.ToString(), newValue.ToString()));
     }
 
 

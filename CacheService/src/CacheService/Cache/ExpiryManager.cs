@@ -34,9 +34,9 @@ public sealed class ExpiryManager
         _monitoringIntervalInSecs = expiryInterval;
         _expiryOffset = expiryInterval / 2; // ±3 sec if expiryInterval = 6 sec
 
-        _cacheManagerCore.CreateEvent += (sender, args) => AddItem((CacheItem)((CacheEventArgs)args).Item);
-        _cacheManagerCore.UpdateEvent += (sender, args) => UpdateItem(args);
-        _cacheManagerCore.DeleteEvent += (sender, args) => RemoveItem((CacheItem)((CacheEventArgs)args).Item);
+        _cacheManagerCore.CreateEvent += (sender, args) => AddItem((CacheItem)args.Item);
+        _cacheManagerCore.UpdateEvent += (sender, args) => UpdateItem((CacheCoreEventArgs)args);
+        _cacheManagerCore.DeleteEvent += (sender, args) => RemoveItem((CacheItem)((CacheCoreEventArgs)args).Item);
 
         StartExpiryThread();
     }
@@ -61,16 +61,20 @@ public sealed class ExpiryManager
         }
     }
 
-    public void UpdateItem(CacheItem oldItem, CacheItem item){
+    public void UpdateItem(CacheCoreEventArgs args)
+    {
+        CacheItem oldItem = args.OldItem;
+        CacheItem newItem = args.Item;
+        if(oldItem.TTL == newItem.TTL)
+        {
+            log.Debug($"ExpiryManager: UpdateItem: TTL not changed for {newItem.Key}, old TTL: {oldItem.TTL}, new TTL: {newItem.TTL}");
+            return;
+        }
+        log.Debug($"ExpiryManager: UpdateItem: TTL changed for {newItem.Key}, old TTL: {oldItem.TTL}, new TTL: {newItem.TTL}");
+        RemoveItem(args.Item);
+        AddItem(args.Item);
         
     }
-
-    public void UpdateItem(CacheItem item)
-    {
-        RemoveItem(item);
-        AddItem(item);
-    }
-
 
     /// <summary>
     /// Rounds a given TTL to the nearest expiry bucket based on `_monitoringIntervalInSecs`.

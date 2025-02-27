@@ -29,7 +29,7 @@ public sealed class ReqEventHandler : MessageHandler
         _serviceProvider.CreateEvent += (sender, args) => NotifySubscribers(EventName.Create, args);
         _serviceProvider.UpdateEvent += (sender, args) => NotifySubscribers(EventName.Update, args);
         _serviceProvider.DeleteEvent += (sender, args) => NotifySubscribers(EventName.Delete, args);
-        _serviceProvider.FlushAllEvent += (sender, args) => NotifySubscribers(EventName.FlushAll, args);
+        _serviceProvider.FlushAllEvent += (sender, args) => NotifySubscribers(EventName.FlushAll, (CacheEventArgs)args);
     }
 
     public CommandFactory CommandFactory => _commandFactory;

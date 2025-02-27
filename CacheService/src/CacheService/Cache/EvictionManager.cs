@@ -94,9 +94,13 @@ public class EvictionManager
     {
         _cacheSettings = cacheSettings.Value;
         _usageFequency = new();
+        _frequencyListMapCount = new();
         _lock = new object();
+        _frequencyCountLock = new();
         _cacheManagerCore = cacheManagerCore;
-        _cacheManagerCore.EvictionNeeded += OnEvictionNeeded;
+        
+        _cacheManagerCore.EvictionNeeded +=(sender, args)=> OnEvictionNeeded((CacheCoreEventArgs)args);
+        //Todo: modify the arguments of handlers to receive CacheCoreEventArgs or CacheItem
         _cacheManagerCore.CreateEvent += (sender, args) => AddItem(args);
         _cacheManagerCore.UpdateEvent += (sender, args) => IncrementUsage(args);
         _cacheManagerCore.ReadEvent += (sender, args) => IncrementUsage(args);
@@ -115,7 +119,7 @@ public class EvictionManager
     /// <param name="args"></param>
     private void IncrementUsage(EventArgs args)
     {
-        CacheItem item = ((CacheEventArgs)args).Item;
+        CacheItem item = ((CacheCoreEventArgs)args).Item;
         int currentUsageCount = item.UsageCount;
         Dictionary<string, CacheItem> items;
         bool incrementedSuccessfully = false;
@@ -156,7 +160,7 @@ public class EvictionManager
     private void RemoveItem(EventArgs args)
     {
         Interlocked.Decrement(ref _usageFequencyTotalItems);
-        CacheItem item = ((CacheEventArgs)args).Item;
+        CacheItem item = ((CacheCoreEventArgs)args).Item;
         int currentUsageCount = item.UsageCount;
         Dictionary<string, CacheItem> items;
         lock (_lock)
@@ -169,7 +173,7 @@ public class EvictionManager
         }
     }
 
-    private void OnEvictionNeeded(object? sender, CacheEventArgs e)
+    private void OnEvictionNeeded(CacheCoreEventArgs e)
     {
         Evict();
     }
