@@ -71,7 +71,7 @@ public class CacheManagerCore
             _memoryManager.Add(size);
             //OnCreateEvent(item.Key, item.Value.ToString());
             OnCreateEvent(item);
-            log.Debug($"Added key: {item.Key}, Value: {item.Value}, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
+            log.Debug($"CacheManagerCore: Added key: {item.Key}, Value: {item.Value}, currentMemoryUsageInBytes: {_memoryManager.CurrentMemoryUsageInBytes}");
             return true;
         }
         return false;
@@ -164,9 +164,10 @@ public class CacheManagerCore
     /// Updates the value of the cache item, if the key does not exist, throws an exception.
     /// </summary>
     /// <param name="item"></param>
+    /// <param name="raiseEvent">does not raise the Update Event if set to false, default: true</param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public bool Update(CacheItem item)
+    public bool Update(CacheItem item, bool raiseEvent = true)
     {
         bool isUpdatedSuccessfully = false;
         string oldValue = "";
@@ -205,7 +206,8 @@ public class CacheManagerCore
 
         if (isUpdatedSuccessfully)
         {
-            OnUpdateEvent(oldItem, item);
+            if (raiseEvent)
+                OnUpdateEvent(oldItem, item);
             _memoryManager.Update(oldSize, newSize);
             return true;
         }
@@ -215,7 +217,12 @@ public class CacheManagerCore
             throw new ArgumentException($"Key: {item.Key} does not exist in the cache, cannot update");
         }
     }
-    public void Delete(string key)
+
+    /// <summary>
+    /// Removes the object from cache against the given key. Does nothing if it does not exist.
+    /// </summary>
+    /// <param name="raiseEvent">does not raise the Update Event if set to false, default: true</param>
+    public void Delete(string key, bool raiseEvent = true)
     {
         string removedValue = "";
         CacheItem removedItem = null;
@@ -235,7 +242,8 @@ public class CacheManagerCore
         }
 
         //OnDeleteEvent(key, removedValue);
-        OnDeleteEvent(removedItem);
+        if (raiseEvent)
+            OnDeleteEvent(removedItem);
         size = _memoryManager.GetSizeInBytes(key, removedValue);
         _memoryManager.Remove(size);
         return;

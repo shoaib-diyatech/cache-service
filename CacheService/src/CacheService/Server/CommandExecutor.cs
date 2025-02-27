@@ -30,7 +30,7 @@ public class CommandExecutor
         else if (command is CreateCommand)
         {
             CreateCommand createCommand = (CreateCommand)command;
-            bool success = _cacheManager.Create(createCommand.Key, createCommand.Value);
+            bool success = _cacheManager.Create(createCommand.Key, createCommand.Value, createCommand.TTL);
             return new Response { RequestId = requestId, Code = success ? Code.Success : Code.Conflict, Type = success ? ResponseType.Response : ResponseType.Error, Message = success ? $"Created {createCommand.Key}" : "Key already exists." };
         }
         else if (command is ReadCommand)
@@ -42,7 +42,7 @@ public class CommandExecutor
         else if (command is UpdateCommand)
         {
             UpdateCommand updateCommand = (UpdateCommand)command;
-            bool success = _cacheManager.Update(updateCommand.Key, updateCommand.Value);
+            bool success = _cacheManager.Update(updateCommand.Key, updateCommand.Value, updateCommand.TTL);
             return new Response { RequestId = requestId, Code = success ? Code.Success : Code.NotFound, Type = success ? ResponseType.Response : ResponseType.Error, Message = success ? $"Updated {updateCommand.Key}" : "Key not found." };
         }
         else if (command is DeleteCommand)

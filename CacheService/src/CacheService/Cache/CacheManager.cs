@@ -69,6 +69,12 @@ public class CacheManager
         return _cacheManagerCore.Update(item);
     }
 
+    public bool Update(string key, string newValue, long ttl)
+    {
+        var item = new CacheItem { Key = key, Value = newValue, TTL = ttl };
+        return _cacheManagerCore.Update(item);
+    }
+
     /// <summary>
     /// Removes the object from cache against the given key. Does nothing if it does not exist.
     /// </summary>

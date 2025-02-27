@@ -100,8 +100,8 @@ public sealed class ExpiryManager
         {
             while (_isRunning)
             {
-                ExpireItems();
                 Thread.Sleep(_monitoringIntervalInSecs * 1000); // Sleep for configured interval
+                ExpireItems();
             }
         })
         {
@@ -141,7 +141,7 @@ public sealed class ExpiryManager
         // Track keys of empty TTL buckets in _expiryMap
         // Need to remove them since they are expired and empty
         // No new insertions can and will be made in these buckets
-        List<long> emptyBucketKeysToRemoveFromExpiryMap = new(); 
+        List<long> emptyBucketKeysToRemoveFromExpiryMap = new();
         List<string> keysToRemoveFromMainCache = new();
         log.Debug($"ExpiryManager: Checking for expired items at {currentTime}");
 
@@ -193,7 +193,7 @@ public sealed class ExpiryManager
         {
             foreach (var key in expiredItems)
             {
-                _cacheManagerCore.Delete(key.Key);
+                _cacheManagerCore.Delete(key.Key, false); // Do not raise the delete event
             }
         }
         else
