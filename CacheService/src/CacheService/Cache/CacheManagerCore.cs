@@ -167,8 +167,9 @@ public class CacheManagerCore
     /// <param name="raiseEvent">does not raise the Update Event if set to false, default: true</param>
     /// <returns></returns>
     /// <exception cref="ArgumentException"></exception>
-    public bool Update(CacheItem item, bool raiseEvent = true)
+    public bool Update(CacheItem item)
     {
+        bool raiseEvent = true;
         bool isUpdatedSuccessfully = false;
         string oldValue = "";
         CacheItem oldItem = null;
@@ -222,8 +223,9 @@ public class CacheManagerCore
     /// Removes the object from cache against the given key. Does nothing if it does not exist.
     /// </summary>
     /// <param name="raiseEvent">does not raise the Update Event if set to false, default: true</param>
-    public void Delete(string key, bool raiseEvent = true)
+    public void Delete(string key)
     {
+        bool raiseEvent = true;
         string removedValue = "";
         CacheItem removedItem = null;
         long size = 0;

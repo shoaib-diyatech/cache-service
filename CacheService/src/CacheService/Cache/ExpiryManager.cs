@@ -193,7 +193,7 @@ public sealed class ExpiryManager
         {
             foreach (var key in expiredItems)
             {
-                _cacheManagerCore.Delete(key.Key, false); // Do not raise the delete event
+                _cacheManagerCore.Delete(key.Key); 
             }
         }
         else
