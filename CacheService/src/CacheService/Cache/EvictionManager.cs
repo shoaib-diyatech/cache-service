@@ -57,8 +57,8 @@ public class EvictionManager
         _lock = new object();
         _frequencyCountLock = new();
         _cacheManagerCore = cacheManagerCore;
-        
-        _cacheManagerCore.EvictionNeeded +=(sender, args)=> OnEvictionNeeded((CacheCoreEventArgs)args);
+
+        _cacheManagerCore.EvictionNeeded += (sender, args) => OnEvictionNeeded((CacheCoreEventArgs)args);
         //Todo: modify the arguments of handlers to receive CacheCoreEventArgs or CacheItem
         _cacheManagerCore.CreateEvent += (sender, args) => AddItem(args);
         _cacheManagerCore.UpdateEvent += (sender, args) => IncrementUsage(args);
@@ -83,7 +83,7 @@ public class EvictionManager
         Interlocked.Exchange(ref smallestFrequency, Math.Min(Interlocked.CompareExchange(ref smallestFrequency, frequency, smallestFrequency), frequency));
 
         // If highestFrequency is less than frequency, then updating it to frequency
-        Interlocked.Exchange(ref highestFrequency, Math.Max(Interlocked.CompareExchange(ref highestFrequency, frequency, highestFrequency), frequency));        
+        Interlocked.Exchange(ref highestFrequency, Math.Max(Interlocked.CompareExchange(ref highestFrequency, frequency, highestFrequency), frequency));
     }
     private void DecrementFrequencyList(int frequency)
     {
@@ -146,11 +146,11 @@ public class EvictionManager
             }
             incrementedSuccessfully = true;
         }
-        if(incrementedSuccessfully)
+        if (incrementedSuccessfully)
         {
             IncrementFrequencyList(item.UsageCount);
         }
-        if(oldFrequencyExists)
+        if (oldFrequencyExists)
         {
             DecrementFrequencyList(currentUsageCount);
         }
@@ -215,6 +215,12 @@ public class EvictionManager
                     items.Remove(item.Key);
                     DecrementFrequencyList(_usageFrequencyToEvict);
                     evictedItems++;
+                }
+                _frequencyListMapCount[smallestFrequency] = 0;
+                smallestFrequency++;
+                while (_frequencyListMapCount.ContainsKey(smallestFrequency) && _frequencyListMapCount[smallestFrequency] == 0)
+                {
+                    smallestFrequency++;
                 }
             }
         }
