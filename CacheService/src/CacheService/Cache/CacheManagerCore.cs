@@ -219,6 +219,22 @@ public class CacheManagerCore
         }
     }
 
+    public void SetAsExpired(CacheItem item)
+    {
+        lock (item)
+        {
+            item.IsExpired = true;
+        }
+    }
+
+    public bool IsExpired(CacheItem item)
+    {
+        lock (item)
+        {
+            return item.IsExpired;
+        }
+    }
+
     /// <summary>
     /// Removes the object from cache against the given key. Does nothing if it does not exist.
     /// </summary>

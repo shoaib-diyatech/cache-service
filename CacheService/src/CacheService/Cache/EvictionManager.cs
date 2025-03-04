@@ -203,6 +203,7 @@ public class EvictionManager
                 items = _usageFequency[_usageFrequencyToEvict];
 
                 // Looping inside the Dictionary to remove items
+                // Todo: Need to remove the ToList method as it is expansive
                 foreach (var item in items.ToList())
                 {
                     if (evictedItems >= itemsToEvict)

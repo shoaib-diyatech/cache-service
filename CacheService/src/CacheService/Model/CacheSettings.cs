@@ -20,4 +20,10 @@ public class CacheSettings
     /// </summary>
     public bool StrictExpiry { get; set; }
 
+    /// <summary>
+    /// If true the item's TTL would be reset to 0 on every read and update.
+    /// If false, read and update would not effect the TTL, the item would expire based on StrictExpiry.
+    /// </summary>
+    public bool SlidingExpiry { get; set; }
+
 }
