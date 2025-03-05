@@ -29,6 +29,8 @@ public sealed class ExpiryManager
     private readonly Dictionary<string, long> _idExpiryMap;
 
     private readonly object _lock = new object();
+
+    private readonly object _idExpiryMapLock = new object();
     private readonly int _monitoringIntervalInSecs; // Monitoring thread interval in seconds
     private readonly int _expiryOffset;   // Offset window in seconds
     private bool _isRunning = true;
@@ -82,6 +84,9 @@ public sealed class ExpiryManager
         lock (dict)
         {
             dict.Add(item.Key, item);
+        }
+        lock (_idExpiryMapLock)
+        {
             _idExpiryMap.Add(item.Key, roundedTTL); // Adding the bucket against the id to be fetched later.
         }
     }
@@ -91,20 +96,30 @@ public sealed class ExpiryManager
     /// </summary>
     public void RemoveItem(CacheItem item)
     {
-        bool canRemove = false;
+        bool canRemoveFromDict = false;
         Dictionary<string, CacheItem> dict = null;
-        lock (_lock)
+        long TTL = 0;
+        bool removedFromIdExpiryMap = false;
+        lock (_idExpiryMapLock)
         {
-            if (_idExpiryMap.Remove(item.Key, out var TTL))
+            if (_idExpiryMap.Remove(item.Key, out TTL))
             {
-                if (_expiryMap.TryGetValue(TTL, out dict))
-                {
-                    //dict.Remove(item.Key);
-                    canRemove = true;
-                }
+                removedFromIdExpiryMap = true;
             }
         }
-        if (canRemove)
+        if (!removedFromIdExpiryMap)
+        {
+            return;
+        }
+        lock (_lock)
+        {
+            if (_expiryMap.TryGetValue(TTL, out dict))
+            {
+                //dict.Remove(item.Key);
+                canRemoveFromDict = true;
+            }
+        }
+        if (canRemoveFromDict)
         {
             if (dict != null)
             {
@@ -248,7 +263,10 @@ public sealed class ExpiryManager
                 foreach (var (key, expiredItem) in dict)
                 {
                     expiredItems.Add(expiredItem);
-                    _idExpiryMap.Remove(key);
+                    lock(_idExpiryMapLock)
+                    {
+                        _idExpiryMap.Remove(key);
+                    }
                 }
 
                 foreach (var key in keysToRemove)
