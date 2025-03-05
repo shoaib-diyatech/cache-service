@@ -67,16 +67,21 @@ public sealed class ExpiryManager
             return; // If TTL is 0 Expiry doesn't work
         }
         long roundedTTL = GetRoundedTTL(item.TTL); // Getting the nearest expiry bucket so that we can group items by their rounded TTL
+        Dictionary<string, CacheItem> dict = null;
         lock (_lock)
         {
-            if (!_expiryMap.TryGetValue(roundedTTL, out var dict))
+            if (!_expiryMap.TryGetValue(roundedTTL, out dict))
             {
                 // Create a new bucket if it doesn't exist
                 dict = new Dictionary<string, CacheItem>();
                 _expiryMap[roundedTTL] = dict;
             }
             // Add to an existing expiry bucket
-            dict.Add(item.Key, item); //Todo: Add a granular lock on 'dict' to avoid lock contention
+            //dict.Add(item.Key, item); // Added a granular lock on 'dict' to avoid nested locking
+        }
+        lock (dict)
+        {
+            dict.Add(item.Key, item);
             _idExpiryMap.Add(item.Key, roundedTTL); // Adding the bucket against the id to be fetched later.
         }
     }
@@ -86,13 +91,26 @@ public sealed class ExpiryManager
     /// </summary>
     public void RemoveItem(CacheItem item)
     {
+        bool canRemove = false;
+        Dictionary<string, CacheItem> dict = null;
         lock (_lock)
         {
             if (_idExpiryMap.Remove(item.Key, out var TTL))
             {
-                if (_expiryMap.TryGetValue(TTL, out var dict))
+                if (_expiryMap.TryGetValue(TTL, out dict))
                 {
-                    dict.Remove(item.Key);
+                    //dict.Remove(item.Key);
+                    canRemove = true;
+                }
+            }
+        }
+        if (canRemove)
+        {
+            if (dict != null)
+            {
+                lock (dict)
+                {
+                    dict.Remove(item.Key); // Not checking for empty dictionary here as empty dictionaries are only removed in ExpireItems
                 }
             }
         }
@@ -115,6 +133,7 @@ public sealed class ExpiryManager
         RemoveItem(item);
         AddItem(item);
     }
+
 
     public void UpdateItem(CacheCoreEventArgs args)
     {
@@ -180,7 +199,6 @@ public sealed class ExpiryManager
         // Need to remove them since they are expired and empty
         // No new insertions can and will be made in these buckets
         List<long> emptyBucketKeysToRemoveFromExpiryMap = new();
-        List<string> keysToRemoveFromMainCache = new();
         log.Debug($"ExpiryManager: Checking for expired items at {currentTime}");
 
         List<long> keysInExpiryMapLessThanUpperBound = new List<long>();
@@ -227,10 +245,8 @@ public sealed class ExpiryManager
             var keysToRemove = new List<string>(); // avoiding ToList()
             lock (dict)
             {
-                foreach (var kvp in dict)
+                foreach (var (key, expiredItem) in dict)
                 {
-                    string key = kvp.Key;
-                    CacheItem expiredItem = kvp.Value;
                     expiredItems.Add(expiredItem);
                     _idExpiryMap.Remove(key);
                 }
@@ -258,17 +274,17 @@ public sealed class ExpiryManager
         }
 
 
-        // lock (_lock)
-        // {
-        //     // Clean up empty TTL buckets
-        //     foreach (var key in emptyBucketKeysToRemoveFromExpiryMap)
-        //     {
-        //         // No Need to check null again, since key might contain a value now, since lock was released after getting the keys
-        //         //if(_expiryMap.ContainsKey(key) && _expiryMap[key].Count == 0)
-        //         // No need to check for empty TTL bucket, because a new entry cannot be added to an old TTL bucket
-        //         _expiryMap.Remove(key);
-        //     }
-        // }
+        lock (_lock)
+        {
+            // Clean up empty TTL buckets
+            foreach (var key in emptyBucketKeysToRemoveFromExpiryMap)
+            {
+                // No Need to check null again, since key might contain a value now, since lock was released after getting the keys
+                //if(_expiryMap.ContainsKey(key) && _expiryMap[key].Count == 0)
+                // No need to check for empty TTL bucket, because a new entry cannot be added to an old TTL bucket
+                _expiryMap.Remove(key);
+            }
+        }
     }
 
     /// <summary>
